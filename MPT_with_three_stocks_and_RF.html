@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modern Portfolio Theory: Three Risky Assets and a Risk-Free Asset</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-a: #0072B2; --color-b: #E69F00; --color-c: #CC79A7; --color-cal: #7c3aed;
+    --bg: #faf9f7; --panel-bg: #ffffff; --text: #1a1a1a; --text-muted: #6b7280;
+    --border: #e5e2dd; --accent: #1a1a1a; --input-bg: #f5f4f2;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+  body { font-family: 'Source Serif 4', Georgia, serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1.5rem; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem; }
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 2rem; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .controls { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); max-height: calc(100vh - 4rem); overflow-y: auto; }
+  .section-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+  .section-label .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+  .input-group { display: flex; flex-direction: column; gap: 0.2rem; }
+  .input-group label { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); }
+  .input-group input[type="number"] { font-family: 'IBM Plex Mono', monospace; font-size: 0.88rem; padding: 0.45rem 0.55rem; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text); width: 100%; transition: border-color 0.15s; -moz-appearance: textfield; }
+  .input-group input[type="number"]::-webkit-inner-spin-button, .input-group input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .input-group input[type="number"]:focus { outline: none; border-color: var(--accent); }
+  .static-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.88rem; padding: 0.45rem 0.55rem; border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg); color: var(--text-muted); width: 100%; }
+  .divider { height: 1px; background: var(--border); margin: 1rem 0; }
+
+  .slider-block { margin-bottom: 0.9rem; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+  .slider-header label { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 500; color: var(--text-muted); }
+  .slider-value { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; font-weight: 500; color: var(--text); }
+  input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: var(--border); outline: none; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer; transition: transform 0.1s; }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer; }
+
+  .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+  .chart-panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow); }
+  .chart-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 1rem; }
+  canvas { width: 100%; height: auto; display: block; }
+
+  .legend { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+  .legend-row { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text-muted); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .legend-line { display: inline-block; width: 16px; height: 3px; border-radius: 2px; vertical-align: middle; }
+  .legend-x { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+
+  .warning { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 8px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; line-height: 1.5; }
+  .warning strong { font-weight: 600; }
+
+  .toggles-row { display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .toggle-label { display: flex; align-items: center; gap: 0.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; user-select: none; }
+  .toggle-label input[type="checkbox"] { display: none; }
+  .toggle-switch { position: relative; width: 36px; height: 20px; background: var(--border); border-radius: 10px; transition: background 0.2s; flex-shrink: 0; }
+  .toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.2s; }
+  .toggle-label input:checked + .toggle-switch { background: var(--accent); }
+  .toggle-label input:checked + .toggle-switch::after { transform: translateX(16px); }
+
+  .reset-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+  .reset-btn:hover { background: var(--accent); color: #fff; }
+
+  .readouts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 700px) { .readouts-row { grid-template-columns: 1fr; } }
+  .readout-panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+  .readout-panel.cal-panel { border-color: var(--color-cal); border-width: 1.5px; }
+  .readout-panel-title { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.6rem; }
+  .readout-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem; }
+  .readout-item { display: flex; flex-direction: column; gap: 0.1rem; }
+  .readout-label { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; font-weight: 500; color: var(--text-muted); letter-spacing: 0.03em; }
+  .readout-val { font-family: 'IBM Plex Mono', monospace; font-size: 0.95rem; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>RSM1231: Modern Portfolio Theory</h1>
+  <p class="subtitle">Three risky assets and a risk-free asset</p>
+  <div class="layout">
+    <div class="controls">
+      <div class="section-label"><span class="dot" style="background:var(--color-a)"></span> Asset A</div>
+      <div class="input-row">
+        <div class="input-group"><label>E[R<sub>A</sub>] (%)</label><input type="number" id="ra" value="12" step="0.1"></div>
+        <div class="input-group"><label>&sigma;<sub>A</sub> (%)</label><input type="number" id="sa" value="20" step="0.1"></div>
+      </div>
+      <div class="section-label"><span class="dot" style="background:var(--color-b)"></span> Asset B</div>
+      <div class="input-row">
+        <div class="input-group"><label>E[R<sub>B</sub>] (%)</label><input type="number" id="rb" value="8" step="0.1"></div>
+        <div class="input-group"><label>&sigma;<sub>B</sub> (%)</label><input type="number" id="sb" value="15" step="0.1"></div>
+      </div>
+      <div class="section-label"><span class="dot" style="background:var(--color-c)"></span> Asset C</div>
+      <div class="input-row">
+        <div class="input-group"><label>E[R<sub>C</sub>] (%)</label><input type="number" id="rc" value="3" step="0.1"></div>
+        <div class="input-group"><label>&sigma;<sub>C</sub> (%)</label><input type="number" id="sc" value="12" step="0.1"></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Risk-Free Rate</div>
+      <div class="input-row">
+        <div class="input-group"><label>R<sub>f</sub> (%)</label><input type="number" id="rf" value="2" step="0.1"></div>
+        <div class="input-group"><label>&sigma;<sub>Rf</sub> (%)</label><div class="static-val">0</div></div>
+      </div>
+      <div class="divider"></div>
+      <div class="section-label">Correlations</div>
+      <div class="slider-block"><div class="slider-header"><label>&rho;<sub>AB</sub></label><span class="slider-value" id="rhoAB-display">0.40</span></div><input type="range" id="rhoAB" min="-1" max="1" step="0.01" value="0.40"></div>
+      <div class="slider-block"><div class="slider-header"><label>&rho;<sub>AC</sub></label><span class="slider-value" id="rhoAC-display">-0.30</span></div><input type="range" id="rhoAC" min="-1" max="1" step="0.01" value="-0.30"></div>
+      <div class="slider-block"><div class="slider-header"><label>&rho;<sub>BC</sub></label><span class="slider-value" id="rhoBC-display">0.00</span></div><input type="range" id="rhoBC" min="-1" max="1" step="0.01" value="0.00"></div>
+      <div class="divider"></div>
+      <div class="section-label">Risky Portfolio Weights</div>
+      <div class="slider-block"><div class="slider-header"><label>w<sub>A</sub></label><span class="slider-value" id="wA-display">0.25</span></div><input type="range" id="wA" min="0" max="1" step="0.01" value="0.25"></div>
+      <div class="slider-block"><div class="slider-header"><label>w<sub>B</sub></label><span class="slider-value" id="wB-display">0.60</span></div><input type="range" id="wB" min="0" max="0.75" step="0.01" value="0.60"></div>
+      <div class="slider-block"><div class="slider-header"><label>w<sub>C</sub></label><span class="slider-value" id="wC-display" style="color:var(--color-c)">0.15</span></div></div>
+      <div class="divider"></div>
+      <div class="section-label"><span class="dot" style="background:var(--color-cal)"></span> Capital Allocation</div>
+      <div class="slider-block"><div class="slider-header"><label>w<sub>M</sub> (weight in M)</label><span class="slider-value" id="wM-display">0.50</span></div><input type="range" id="wM" min="0" max="2" step="0.01" value="0.50"></div>
+    </div>
+
+    <div class="right-col">
+      <div class="chart-panel">
+        <div class="chart-title">Modern Portfolio Theory: Three Risky Assets and a Risk-Free Asset</div>
+        <canvas id="chart" width="750" height="560"></canvas>
+        <div class="legend">
+          <div class="legend-row" id="leg-assets-row">
+            <div class="legend-item" id="leg-assetA"><span class="legend-swatch" style="background:var(--color-a)"></span> Asset A</div>
+            <div class="legend-item" id="leg-assetB"><span class="legend-swatch" style="background:var(--color-b)"></span> Asset B</div>
+            <div class="legend-item" id="leg-assetC"><span class="legend-swatch" style="background:var(--color-c)"></span> Asset C</div>
+            <div class="legend-item" id="leg-sel"><span class="legend-x">✕</span> Selected risky portfolio</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item" id="leg-ef"><span class="legend-line" style="background:#1a1a1a;"></span> Efficient frontier</div>
+            <div class="legend-item" id="leg-cal"><span class="legend-line" style="background:var(--color-cal);"></span> Capital allocation line</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-item" id="leg-rf"><span class="legend-swatch" style="background:var(--color-cal)"></span> Risk-free asset</div>
+            <div class="legend-item" id="leg-calp"><span style="color:var(--color-cal);font-weight:700;font-size:0.9rem;">◆</span> CAL portfolio</div>
+          </div>
+        </div>
+        <div class="warning" id="warning" style="display:none;"></div>
+      </div>
+
+      <div class="readouts-row">
+        <div class="readout-panel">
+          <div class="readout-panel-title">Selected Risky Portfolio</div>
+          <div class="readout-grid">
+            <div class="readout-item"><span class="readout-label">E[R<sub>p</sub>]</span><span class="readout-val" id="rp-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">σ<sub>p</sub></span><span class="readout-val" id="sp-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">Sharpe</span><span class="readout-val" id="sharpe-val">—</span></div>
+          </div>
+        </div>
+        <div class="readout-panel">
+          <div class="readout-panel-title">Tangency Portfolio (M)</div>
+          <div class="readout-grid">
+            <div class="readout-item"><span class="readout-label">E[R<sub>M</sub>]</span><span class="readout-val" id="rm-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">σ<sub>M</sub></span><span class="readout-val" id="sm-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">Sharpe</span><span class="readout-val" id="sharpe-m-val">—</span></div>
+          </div>
+        </div>
+        <div class="readout-panel cal-panel">
+          <div class="readout-panel-title">CAL Portfolio</div>
+          <div class="readout-grid">
+            <div class="readout-item"><span class="readout-label">E[R]</span><span class="readout-val" id="rcal-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">σ</span><span class="readout-val" id="scal-val">—</span></div>
+            <div class="readout-item"><span class="readout-label">Sharpe</span><span class="readout-val" id="sharpe-cal-val">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggles-row">
+        <label class="toggle-label"><input type="checkbox" id="show2A" checked><span class="toggle-switch"></span>Two-Asset Curves</label>
+        <label class="toggle-label"><input type="checkbox" id="show3A" checked><span class="toggle-switch"></span>Three-Asset Portfolios</label>
+        <label class="toggle-label"><input type="checkbox" id="showSel" checked><span class="toggle-switch"></span>Selected Portfolio</label>
+      </div>
+      <div class="toggles-row">
+        <label class="toggle-label"><input type="checkbox" id="showEF" checked><span class="toggle-switch"></span>Efficient Frontier</label>
+        <label class="toggle-label"><input type="checkbox" id="showRF" checked><span class="toggle-switch"></span>Risk-Free Asset</label>
+        <label class="toggle-label"><input type="checkbox" id="showCAL" checked><span class="toggle-switch"></span>Capital Allocation Line</label>
+        <button class="reset-btn" id="resetBtn" title="Reset all parameters to defaults">↺ Reset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const $ = id => document.getElementById(id);
+
+const el = {
+  rA:$('ra'), rB:$('rb'), rC:$('rc'), sA:$('sa'), sB:$('sb'), sC:$('sc'), rf:$('rf'),
+  rhoAB:$('rhoAB'), rhoAC:$('rhoAC'), rhoBC:$('rhoBC'),
+  wA:$('wA'), wB:$('wB'), wM:$('wM'),
+  rhoABd:$('rhoAB-display'), rhoACd:$('rhoAC-display'), rhoBCd:$('rhoBC-display'),
+  wAd:$('wA-display'), wBd:$('wB-display'), wCd:$('wC-display'), wMd:$('wM-display'),
+  rpVal:$('rp-val'), spVal:$('sp-val'), sharpeVal:$('sharpe-val'),
+  rmVal:$('rm-val'), smVal:$('sm-val'), sharpeMVal:$('sharpe-m-val'),
+  rcalVal:$('rcal-val'), scalVal:$('scal-val'), sharpeCalVal:$('sharpe-cal-val'),
+  warning:$('warning'),
+  showSel:$('showSel'), show2A:$('show2A'), show3A:$('show3A'),
+  showEF:$('showEF'), showRF:$('showRF'), showCAL:$('showCAL'),
+  legRf:$('leg-rf'), legAssetsRow:$('leg-assets-row'),
+  legAssetA:$('leg-assetA'), legAssetB:$('leg-assetB'), legAssetC:$('leg-assetC'),
+  legEf:$('leg-ef'), legCal:$('leg-cal'), legSel:$('leg-sel'), legCalp:$('leg-calp'),
+};
+
+const COL_A={r:0,g:114,b:178}, COL_B={r:230,g:159,b:0}, COL_C={r:204,g:121,b:167};
+
+function blend2(c1,c2,w1){
+  const w2=1-w1;
+  return `rgb(${Math.round(c1.r*w1+c2.r*w2)},${Math.round(c1.g*w1+c2.g*w2)},${Math.round(c1.b*w1+c2.b*w2)})`;
+}
+function blend3(wA,wB,wC){
+  return `rgb(${Math.round(COL_A.r*wA+COL_B.r*wB+COL_C.r*wC)},${Math.round(COL_A.g*wA+COL_B.g*wB+COL_C.g*wC)},${Math.round(COL_A.b*wA+COL_B.b*wB+COL_C.b*wC)})`;
+}
+
+function portR(wA,wB,rA,rB,rC){ return wA*rA+wB*rB+(1-wA-wB)*rC; }
+function portS(wA,wB,sA,sB,sC,rAB,rAC,rBC){
+  const wC=1-wA-wB;
+  return Math.sqrt(Math.max(0, wA*wA*sA*sA+wB*wB*sB*sB+wC*wC*sC*sC+2*wA*wB*rAB*sA*sB+2*wA*wC*rAC*sA*sC+2*wB*wC*rBC*sB*sC));
+}
+
+function outText(t,x,y,fill,stroke,font,al,bl){
+  ctx.font=font; ctx.textAlign=al||'left'; ctx.textBaseline=bl||'middle';
+  ctx.lineWidth=3.5; ctx.lineJoin='round'; ctx.strokeStyle=stroke; ctx.strokeText(t,x,y);
+  ctx.fillStyle=fill; ctx.fillText(t,x,y);
+}
+function rotText(t,x,y,a,fill,stroke,font,al,bl){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(a);
+  outText(t,0,0,fill,stroke,font,al,bl); ctx.restore();
+}
+
+function onWAChange(){
+  const wA=parseFloat(el.wA.value);
+  const mx=Math.round((1-wA)*100)/100;
+  el.wB.max=mx;
+  if(parseFloat(el.wB.value)>mx) el.wB.value=mx;
+  draw();
+}
+el.wA.addEventListener('input',onWAChange);
+el.wB.addEventListener('input',draw);
+el.wM.addEventListener('input',draw);
+[el.rA,el.rB,el.rC,el.sA,el.sB,el.sC,el.rf,el.rhoAB,el.rhoAC,el.rhoBC].forEach(e=>e.addEventListener('input',draw));
+[el.showSel,el.show2A,el.show3A,el.showEF,el.showRF,el.showCAL].forEach(e=>e.addEventListener('change',draw));
+
+// Reset to defaults
+const DEFAULTS = {
+  ra:'12', sa:'20', rb:'8', sb:'15', rc:'3', sc:'12', rf:'2',
+  rhoAB:'0.40', rhoAC:'-0.30', rhoBC:'0.00',
+  wA:'0.25', wB:'0.60', wM:'0.50'
+};
+$('resetBtn').addEventListener('click', function(){
+  el.rA.value=DEFAULTS.ra; el.sA.value=DEFAULTS.sa;
+  el.rB.value=DEFAULTS.rb; el.sB.value=DEFAULTS.sb;
+  el.rC.value=DEFAULTS.rc; el.sC.value=DEFAULTS.sc;
+  el.rf.value=DEFAULTS.rf;
+  el.rhoAB.value=DEFAULTS.rhoAB; el.rhoAC.value=DEFAULTS.rhoAC; el.rhoBC.value=DEFAULTS.rhoBC;
+  el.wA.value=DEFAULTS.wA; el.wB.max='1'; el.wB.value=DEFAULTS.wB; el.wM.value=DEFAULTS.wM;
+  [el.showSel,el.show2A,el.show3A,el.showEF,el.showRF,el.showCAL].forEach(e=>e.checked=true);
+  onWAChange();
+});
+
+function draw(){
+  const rA=parseFloat(el.rA.value)||0, rB=parseFloat(el.rB.value)||0, rC=parseFloat(el.rC.value)||0;
+  const sA=parseFloat(el.sA.value)||.01, sB=parseFloat(el.sB.value)||.01, sC=parseFloat(el.sC.value)||.01;
+  const rf=parseFloat(el.rf.value)||0;
+  const rAB=parseFloat(el.rhoAB.value), rAC=parseFloat(el.rhoAC.value), rBC=parseFloat(el.rhoBC.value);
+  const wA=parseFloat(el.wA.value), wB=parseFloat(el.wB.value);
+  const wC=Math.round((1-wA-wB)*100)/100;
+  const wM=parseFloat(el.wM.value);
+  const showSel=el.showSel.checked, show2A=el.show2A.checked, show3A=el.show3A.checked;
+  const showEF=el.showEF.checked, showRF=el.showRF.checked, showCAL=el.showCAL.checked;
+
+  // If only row-2 toggles are on (EF/RF/CAL) and at least one is on, auto-hide asset dots
+  const row1AnyOn = showSel || show2A || show3A;
+  const row2AnyOn = showEF || showRF || showCAL;
+  const showAssets = row1AnyOn || !row2AnyOn;
+
+  // Legend visibility
+  el.legSel.style.display    = showSel?'':'none';
+  el.legEf.style.display     = showEF?'':'none';
+  el.legRf.style.display     = showRF?'':'none';
+  el.legCal.style.display    = showCAL?'':'none';
+  el.legCalp.style.display   = showCAL?'':'none';
+  el.legAssetA.style.display = showAssets?'':'none';
+  el.legAssetB.style.display = showAssets?'':'none';
+  el.legAssetC.style.display = showAssets?'':'none';
+
+  // Slider displays
+  el.rhoABd.textContent=rAB.toFixed(2); el.rhoACd.textContent=rAC.toFixed(2); el.rhoBCd.textContent=rBC.toFixed(2);
+  el.wAd.textContent=wA.toFixed(2); el.wBd.textContent=wB.toFixed(2);
+  el.wCd.textContent=Math.max(wC,0).toFixed(2); el.wMd.textContent=wM.toFixed(2);
+
+  // Selected risky portfolio
+  const rpSel=portR(wA,wB,rA,rB,rC), spSel=portS(wA,wB,sA,sB,sC,rAB,rAC,rBC);
+  el.rpVal.textContent=rpSel.toFixed(2)+'%';
+  el.spVal.textContent=spSel.toFixed(2)+'%';
+  el.sharpeVal.textContent=spSel>1e-9?((rpSel-rf)/spSel).toFixed(3):'—';
+
+  // Warnings
+  const warnings=[];
+  if(sA<0||sB<0||sC<0) warnings.push('Standard deviations must be non-negative.');
+  const detR=1+2*rAB*rAC*rBC-rAB*rAB-rAC*rAC-rBC*rBC;
+  if(detR<-1e-9) warnings.push('These three pairwise correlations cannot coexist — some portfolio variances will be negative. Try adjusting the correlations.');
+  {
+    const st=0.05,M=Math.round(1/st); let neg=false;
+    for(let i=0;i<=M&&!neg;i++) for(let j=0;j<=M-i&&!neg;j++){
+      const wa=i*st,wb=j*st,wc=1-wa-wb;
+      if(wa*wa*sA*sA+wb*wb*sB*sB+wc*wc*sC*sC+2*wa*wb*rAB*sA*sB+2*wa*wc*rAC*sA*sC+2*wb*wc*rBC*sB*sC<-1e-9) neg=true;
+    }
+    if(neg&&!warnings.some(w=>w.includes('cannot coexist')))
+      warnings.push('Some portfolio weight combinations produce negative variance.');
+  }
+  if(rf>rA||rf>rB||rf>rC){
+    const above=[];
+    if(rf>rA) above.push('A');
+    if(rf>rB) above.push('B');
+    if(rf>rC) above.push('C');
+    warnings.push('The risk-free rate ('+rf.toFixed(1)+'%) exceeds the expected return of asset'+
+      (above.length>1?'s ':' ')+above.join(', ')+
+      '. The tangency portfolio and CAL may not be economically meaningful.');
+  }
+  // (warnings displayed after tangency computation below)
+
+  // 3-asset feasible set
+  const STEP=0.01, NN=Math.round(1/STEP), pts=[];
+  for(let iA=0;iA<=NN;iA++){
+    const wa=iA*STEP;
+    for(let iB=0;iB<=NN-iA;iB++){
+      const wb=iB*STEP,wc=1-wa-wb;
+      pts.push({wa,wb,wc,r:portR(wa,wb,rA,rB,rC),s:portS(wa,wb,sA,sB,sC,rAB,rAC,rBC)});
+    }
+  }
+
+  // 2-asset frontier curves (200 steps each)
+  const N2=200;
+  function twoAssetCurve(r1,r2,s1,s2,rho){
+    const c=[];
+    for(let i=0;i<=N2;i++){
+      const w=i/N2, w2=1-w;
+      const ret=w*r1+w2*r2;
+      const sig=Math.sqrt(Math.max(0, w*w*s1*s1+w2*w2*s2*s2+2*w*w2*rho*s1*s2));
+      c.push({w,ret,sig});
+    }
+    return c;
+  }
+  const curveAB=twoAssetCurve(rA,rB,sA,sB,rAB);
+  const curveAC=twoAssetCurve(rA,rC,sA,sC,rAC);
+  const curveBC=twoAssetCurve(rB,rC,sB,sC,rBC);
+
+  // Tangency portfolio (max Sharpe)
+  let tangency=null, bestSharpe=-Infinity;
+  for(const p of pts){
+    if(p.s>1e-9){ const sh=(p.r-rf)/p.s; if(sh>bestSharpe){bestSharpe=sh;tangency=p;}}
+  }
+  if(tangency){
+    el.rmVal.textContent=tangency.r.toFixed(2)+'%';
+    el.smVal.textContent=tangency.s.toFixed(2)+'%';
+    el.sharpeMVal.textContent=bestSharpe.toFixed(3);
+    // Check for zero-weight assets in tangency portfolio
+    const zeroAssets=[];
+    if(tangency.wa<0.01) zeroAssets.push('A');
+    if(tangency.wb<0.01) zeroAssets.push('B');
+    if(tangency.wc<0.01) zeroAssets.push('C');
+    if(zeroAssets.length>0){
+      warnings.push('The tangency portfolio assigns zero weight to asset'+
+        (zeroAssets.length>1?'s ':' ')+zeroAssets.join(', ')+
+        '. This suggests '+(zeroAssets.length>1?'these assets are':'this asset is')+
+        ' overpriced (expected return too low for its risk and correlation profile).');
+    }
+  } else { el.rmVal.textContent=el.smVal.textContent=el.sharpeMVal.textContent='—'; }
+
+  // Display warnings
+  el.warning.innerHTML=warnings.length?'<strong>⚠ Warning:</strong> '+warnings.join('<br>'):'';
+  el.warning.style.display=warnings.length?'block':'none';
+
+  // CAL portfolio
+  let rCal=rf,sCal=0;
+  if(tangency){ rCal=wM*tangency.r+(1-wM)*rf; sCal=wM*tangency.s; }
+  el.rcalVal.textContent=rCal.toFixed(2)+'%';
+  el.scalVal.textContent=sCal.toFixed(2)+'%';
+  el.sharpeCalVal.textContent=sCal>1e-9?((rCal-rf)/sCal).toFixed(3):'—';
+
+  // Axis ranges
+  let minS=0,maxSv=-Infinity,minRv=Infinity,maxRv=-Infinity;
+  for(const p of pts){ if(p.s>maxSv) maxSv=p.s; if(p.r<minRv) minRv=p.r; if(p.r>maxRv) maxRv=p.r; }
+  if(rf<minRv)minRv=rf; if(rf>maxRv)maxRv=rf;
+  if(rCal<minRv)minRv=rCal; if(rCal>maxRv)maxRv=rCal; if(sCal>maxSv)maxSv=sCal;
+  if(maxRv-minRv<.001){maxRv=minRv+2;minRv-=2;} if(maxSv<.001)maxSv=2;
+  const padS=maxSv*.15, padR2=(maxRv-minRv)*.15;
+  maxSv+=padS;
+  if(rA>=0&&rB>=0&&rC>=0&&rf>=0){minRv=0;maxRv+=padR2;} else {minRv-=padR2;maxRv+=padR2;}
+
+  // Canvas
+  const dpr=window.devicePixelRatio||1, rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=rect.width,H=rect.height;
+  const mg={top:20,right:25,bottom:52,left:62};
+  const cw=W-mg.left-mg.right, ch=H-mg.top-mg.bottom;
+  function xM(s){return mg.left+(s-minS)/(maxSv-minS)*cw;}
+  function yM(r){return mg.top+ch-(r-minRv)/(maxRv-minRv)*ch;}
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#e5e2dd'; ctx.lineWidth=0.5;
+  function niceStep(rng,mt){if(rng<=0)return 1;const r2=rng/mt,m=Math.pow(10,Math.floor(Math.log10(r2))),rs=r2/m;if(rs<=1.5)return m;if(rs<=3)return 2*m;if(rs<=7)return 5*m;return 10*m;}
+  const stX=niceStep(maxSv-minS,6), stY=niceStep(maxRv-minRv,6);
+  ctx.font='12px "IBM Plex Mono",monospace'; ctx.fillStyle='#9ca3af';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let v=Math.ceil(minS/stX)*stX;v<=maxSv;v+=stX){const x=xM(v);ctx.beginPath();ctx.moveTo(x,mg.top);ctx.lineTo(x,mg.top+ch);ctx.stroke();ctx.fillText(v.toFixed(1)+'%',x,mg.top+ch+8);}
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let v=Math.ceil(minRv/stY)*stY;v<=maxRv;v+=stY){const y=yM(v);ctx.beginPath();ctx.moveTo(mg.left,y);ctx.lineTo(mg.left+cw,y);ctx.stroke();ctx.fillText(v.toFixed(1)+'%',mg.left-8,y);}
+  ctx.fillStyle='#6b7280'; ctx.font='13px "Source Serif 4",Georgia,serif';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('Portfolio Standard Deviation (σ)',mg.left+cw/2,H-14);
+  ctx.save(); ctx.translate(14,mg.top+ch/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('Expected Return E[R]',0,0); ctx.restore();
+
+  // ---- Dot cloud (3-asset) ----
+  if(show3A){
+    const imgData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const data=imgData.data, canW=canvas.width;
+    for(const p of pts){
+      const px=Math.round(xM(p.s)*dpr),py=Math.round(yM(p.r)*dpr);
+      const cr=Math.round(COL_A.r*p.wa+COL_B.r*p.wb+COL_C.r*p.wc);
+      const cg=Math.round(COL_A.g*p.wa+COL_B.g*p.wb+COL_C.g*p.wc);
+      const cb=Math.round(COL_A.b*p.wa+COL_B.b*p.wb+COL_C.b*p.wc);
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+        const ix=px+dx,iy=py+dy;
+        if(ix<0||iy<0||ix>=canW||iy>=canvas.height)continue;
+        const idx=(iy*canW+ix)*4;
+        data[idx]=cr;data[idx+1]=cg;data[idx+2]=cb;data[idx+3]=255;
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+  }
+
+  // ---- Two-asset curves ----
+  if(show2A){
+    function drawCurve(curve,col1,col2){
+      ctx.lineWidth=3; ctx.lineCap='round';
+      for(let i=0;i<curve.length-1;i++){
+        const p0=curve[i],p1=curve[i+1],mw=(p0.w+p1.w)/2;
+        ctx.strokeStyle=blend2(col1,col2,mw);
+        ctx.beginPath(); ctx.moveTo(xM(p0.sig),yM(p0.ret)); ctx.lineTo(xM(p1.sig),yM(p1.ret)); ctx.stroke();
+      }
+    }
+    drawCurve(curveAB, COL_A, COL_B);
+    drawCurve(curveAC, COL_A, COL_C);
+    drawCurve(curveBC, COL_B, COL_C);
+  }
+
+  // ---- Efficient frontier (analytical: for each target return, minimize variance along constraint) ----
+  if(showEF){
+    // Find return range from feasible set
+    let minFR=Infinity, maxFR=-Infinity;
+    for(const p of pts){ if(p.r<minFR)minFR=p.r; if(p.r>maxFR)maxFR=p.r; }
+
+    // For a target return R, the constraint is:
+    // wA*(rA-rC) + wB*(rB-rC) = R - rC,  with wA,wB>=0, wA+wB<=1
+    // Parameterize wA from 0 to feasible max, compute wB, then variance.
+    // Find the wA that gives minimum variance for this R.
+    const dRA=rA-rC, dRB=rB-rC;
+    const nSteps=300;
+    const frontier=[];
+
+    for(let k=0;k<=nSteps;k++){
+      const targetR=minFR+(maxFR-minFR)*k/nSteps;
+      const rhs=targetR-rC;
+      let bestS=Infinity, bestR=targetR;
+
+      // Sweep wA at fine resolution along the return constraint line
+      const nSweep=500;
+      for(let j=0;j<=nSweep;j++){
+        const wa=j/nSweep;
+        let wb;
+        if(Math.abs(dRB)>1e-12){
+          wb=(rhs-wa*dRA)/dRB;
+        } else if(Math.abs(dRA)>1e-12){
+          // rB==rC, so only wA matters for return; wB is free
+          // wA = rhs/dRA, check if this j matches
+          const needed=rhs/dRA;
+          if(Math.abs(wa-needed)>1/nSweep) continue;
+          wb=0; // minimize variance: try wB from 0 to 1-wa
+          let bS2=Infinity;
+          for(let m=0;m<=100;m++){
+            const wb2=m/100*(1-wa);
+            const wc2=1-wa-wb2;
+            if(wc2<-1e-9) continue;
+            const ss=portS(wa,wb2,sA,sB,sC,rAB,rAC,rBC);
+            if(ss<bS2){bS2=ss; wb=wb2;}
+          }
+          const wc=1-wa-wb;
+          if(wc>=-1e-9 && bS2<bestS){bestS=bS2; bestR=portR(wa,wb,rA,rB,rC);}
+          continue;
+        } else {
+          // rA==rB==rC: all portfolios have same return
+          if(Math.abs(rhs)>1e-9) continue;
+          wb=(1-wa)/2;
+        }
+
+        if(wb<-1e-9||wb>1-wa+1e-9) continue;
+        wb=Math.max(0,Math.min(1-wa,wb));
+        const wc=1-wa-wb;
+        if(wc<-1e-9) continue;
+        const ss=portS(wa,wb,sA,sB,sC,rAB,rAC,rBC);
+        if(ss<bestS){bestS=ss; bestR=portR(wa,wb,rA,rB,rC);}
+      }
+      if(bestS<Infinity) frontier.push({s:bestS,r:bestR});
+    }
+
+    // Keep only the efficient (upper) half: from MVP upward
+    let mvpFI=0;
+    for(let i=1;i<frontier.length;i++) if(frontier[i].s<frontier[mvpFI].s) mvpFI=i;
+    const effFrontier=frontier.slice(mvpFI);
+
+    if(effFrontier.length>=2){
+      ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(xM(effFrontier[0].s),yM(effFrontier[0].r));
+      for(let k=1;k<effFrontier.length;k++) ctx.lineTo(xM(effFrontier[k].s),yM(effFrontier[k].r));
+      ctx.stroke();
+
+      // Label: wide span for stable angle
+      const li=Math.round(effFrontier.length*0.7);
+      const span=Math.max(5,Math.round(effFrontier.length*0.15));
+      const i0=Math.max(0,li-span), i1=Math.min(effFrontier.length-1,li+span);
+      const dx2=xM(effFrontier[i1].s)-xM(effFrontier[i0].s);
+      const dy2=yM(effFrontier[i1].r)-yM(effFrontier[i0].r);
+      const angle=Math.atan2(dy2,dx2);
+      rotText('Efficient Frontier',xM(effFrontier[li].s),yM(effFrontier[li].r)-6,angle,
+        '#1a1a1a','#ffffff','bold 12px "Source Serif 4",Georgia,serif','center','bottom');
+    }
+  }
+
+  // ---- Capital Allocation Line ----
+  if(showCAL&&tangency&&tangency.s>1e-9){
+    const calSlope=(tangency.r-rf)/tangency.s;
+    const sigR=maxSv, retR=rf+calSlope*sigR;
+    ctx.strokeStyle='#7c3aed'; ctx.lineWidth=2;
+    ctx.setLineDash([6,4]); ctx.beginPath();
+    ctx.moveTo(xM(0),yM(rf)); ctx.lineTo(xM(sigR),yM(retR)); ctx.stroke(); ctx.setLineDash([]);
+
+    // Label at midway between M and top of Y axis
+    const midRet=(tangency.r+maxRv)/2, midSig=Math.min((midRet-rf)/calSlope,maxSv*.9);
+    const clRet=rf+calSlope*midSig;
+    const calAng=Math.atan2(yM(retR)-yM(rf),xM(sigR)-xM(0));
+    rotText('Capital Allocation Line',xM(midSig),yM(clRet)-22,calAng,
+      '#7c3aed','#ffffff','bold 12px "Source Serif 4",Georgia,serif','center','bottom');
+
+    // M dot
+    const mX2=xM(tangency.s),mY2=yM(tangency.r);
+    ctx.beginPath();ctx.arc(mX2,mY2,7,0,Math.PI*2);ctx.fillStyle='#7c3aed';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+    outText('M',mX2+12,mY2,'#7c3aed','#ffffff','bold 14px "Source Serif 4",Georgia,serif','left','middle');
+
+    // CAL portfolio diamond
+    const calX2=xM(sCal),calY2=yM(rCal),ds=7;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.moveTo(calX2,calY2-ds-1);ctx.lineTo(calX2+ds+1,calY2);ctx.lineTo(calX2,calY2+ds+1);ctx.lineTo(calX2-ds-1,calY2);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#7c3aed';ctx.beginPath();ctx.moveTo(calX2,calY2-ds);ctx.lineTo(calX2+ds,calY2);ctx.lineTo(calX2,calY2+ds);ctx.lineTo(calX2-ds,calY2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+
+    // wM label with subscript
+    {
+      const lx=calX2+12,ly=calY2-12;
+      const mf='bold 12px "IBM Plex Mono",monospace', sf='bold 9px "IBM Plex Mono",monospace';
+      ctx.font=mf; const wW=ctx.measureText('w').width;
+      ctx.font=sf; const mW2=ctx.measureText('M').width;
+      ctx.lineWidth=3.5;ctx.lineJoin='round';
+      ctx.font=mf;ctx.textAlign='left';ctx.textBaseline='bottom';
+      ctx.strokeStyle='#1a1a1a';ctx.strokeText('w',lx,ly);ctx.fillStyle='#fff';ctx.fillText('w',lx,ly);
+      ctx.font=sf;ctx.strokeStyle='#1a1a1a';ctx.strokeText('M',lx+wW,ly+1);ctx.fillStyle='#fff';ctx.fillText('M',lx+wW,ly+1);
+      ctx.font=mf;ctx.strokeStyle='#1a1a1a';ctx.strokeText('='+wM.toFixed(2),lx+wW+mW2,ly);ctx.fillStyle='#fff';ctx.fillText('='+wM.toFixed(2),lx+wW+mW2,ly);
+    }
+  }
+
+  // ---- RF dot (separate toggle) ----
+  if(showRF){
+    ctx.beginPath();ctx.arc(xM(0),yM(rf),5,0,Math.PI*2);
+    ctx.fillStyle='#7c3aed';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    outText('Rf',xM(0)-10,yM(rf),'#7c3aed','#ffffff','bold 13px "Source Serif 4",Georgia,serif','right','middle');
+  }
+
+  // ---- Asset dots ----
+  function drawDot(s,r,color,label,ox,oy){
+    const x=xM(s),y=yM(r);
+    ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+    outText(label,x+ox,y+oy,color,'#ffffff','bold 14px "Source Serif 4",Georgia,serif',ox<0?'right':'left','middle');
+  }
+  if(showAssets){
+    drawDot(sA,rA,'#0072B2','A',-12,0);
+    drawDot(sB,rB,'#E69F00','B',12,0);
+    drawDot(sC,rC,'#CC79A7','C',12,0);
+  }
+
+  // ---- Selected risky portfolio ✕ ----
+  if(showSel){
+    const xS=xM(spSel),yS=yM(rpSel),sz=9;
+    ctx.strokeStyle='#fff';ctx.lineWidth=6;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(xS-sz,yS-sz);ctx.lineTo(xS+sz,yS+sz);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xS+sz,yS-sz);ctx.lineTo(xS-sz,yS+sz);ctx.stroke();
+    ctx.strokeStyle=blend3(wA,wB,Math.max(wC,0));ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(xS-sz,yS-sz);ctx.lineTo(xS+sz,yS+sz);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(xS+sz,yS-sz);ctx.lineTo(xS-sz,yS+sz);ctx.stroke();
+    outText(`(${wA.toFixed(2)}, ${wB.toFixed(2)}, ${Math.max(wC,0).toFixed(2)})`,
+      xS+14,yS-5,'#ffffff','#1a1a1a','bold 12px "IBM Plex Mono",monospace','left','bottom');
+  }
+}
+
+let rt;
+window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(draw,80);});
+onWAChange();
+</script>
+</body>
+</html>

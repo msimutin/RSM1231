@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two-Asset Portfolio: Risk &amp; Return</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --color-a: #0072B2;
+    --color-b: #E69F00;
+    --bg: #faf9f7;
+    --panel-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-muted: #6b7280;
+    --border: #e5e2dd;
+    --accent: #1a1a1a;
+    --input-bg: #f5f4f2;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'Source Serif 4', Georgia, serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.25rem;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  @media (max-width: 820px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* --- Controls Panel --- */
+  .controls {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-label .dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .input-group { display: flex; flex-direction: column; gap: 0.25rem; }
+
+  .input-group label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .input-group input[type="number"] {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  .input-group input[type="number"]::-webkit-inner-spin-button,
+  .input-group input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+
+  .input-group input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.25rem 0;
+  }
+
+  /* --- Slider Styling --- */
+  .slider-block { margin-bottom: 1.25rem; }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.4rem;
+  }
+
+  .slider-header label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .slider-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Editable numeric entry that mirrors the slider */
+  input.slider-value-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+    width: 4.5rem;
+    padding: 0.15rem 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--input-bg);
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+
+  input.slider-value-input::-webkit-inner-spin-button,
+  input.slider-value-input::-webkit-outer-spin-button {
+    -webkit-appearance: none; margin: 0;
+  }
+
+  input.slider-value-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    cursor: pointer;
+  }
+
+  /* --- Portfolio Readout --- */
+  .readout {
+    background: var(--input-bg);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .readout-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .readout-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    /*text-transform: uppercase;*/
+    letter-spacing: 0.05em;
+  }
+
+  .readout-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  /* --- Chart Panel --- */
+  .chart-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+
+  .chart-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+  }
+
+  canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .legend-swatch {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+
+  .legend-x {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>RSM1231: Two-Asset Portfolio</h1>
+  <p class="subtitle">Risk and return with varying correlation and weights</p>
+
+  <div class="layout">
+    <!-- Controls -->
+    <div class="controls">
+      <div class="section-label"><span class="dot" style="background:var(--color-a)"></span> Asset A</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>E[R<sub>A</sub>] (%)</label>
+          <input type="number" id="ra" value="12" step="0.1">
+        </div>
+        <div class="input-group">
+          <label>&sigma;<sub>A</sub> (%)</label>
+          <input type="number" id="sa" value="20" step="0.1">
+        </div>
+      </div>
+
+      <div class="section-label"><span class="dot" style="background:var(--color-b)"></span> Asset B</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>E[R<sub>B</sub>] (%)</label>
+          <input type="number" id="rb" value="4" step="0.1">
+        </div>
+        <div class="input-group">
+          <label>&sigma;<sub>B</sub> (%)</label>
+          <input type="number" id="sb" value="10" step="0.1">
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Correlation slider -->
+      <div class="slider-block">
+        <div class="slider-header">
+          <label>Correlation, &minus;1&le;&rho;<sub>AB</sub>&le;1</label>
+          <input type="number" class="slider-value-input" id="rho-display" min="-1" max="1" step="0.01" value="-0.30">
+        </div>
+        <input type="range" id="rho" min="-1" max="1" step="0.01" value="-0.30">
+      </div>
+
+      <!-- Weight slider -->
+      <div class="slider-block">
+        <div class="slider-header">
+          <label>Weight in A, 0&le;w<sub>A</sub>&le;1</label>
+          <input type="number" class="slider-value-input" id="wa-display" min="0" max="1" step="0.01" value="0.50">
+        </div>
+        <input type="range" id="wa" min="0" max="1" step="0.01" value="0.50">
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Readout -->
+      <div class="section-label">Selected Portfolio</div>
+      <div class="readout">
+        <div class="readout-item">
+          <span class="readout-label">E[R<sub>P</sub>]</span>
+          <span class="readout-val" id="rp-val">—</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">&sigma;<sub>P</sub></span>
+          <span class="readout-val" id="sp-val">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-panel">
+      <!-- <div class="chart-title">Two-Asset Portfolio</div> -->
+      <canvas id="chart" width="700" height="520"></canvas>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--color-a)"></span> Asset A</div>
+        <div class="legend-item"><span class="legend-swatch" style="background:var(--color-b)"></span> Asset B</div>
+        <div class="legend-item"><span class="legend-x">✕</span> Selected portfolio</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Elements ----
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+
+const elRA  = document.getElementById('ra');
+const elRB  = document.getElementById('rb');
+const elSA  = document.getElementById('sa');
+const elSB  = document.getElementById('sb');
+const elRho = document.getElementById('rho');
+const elWA  = document.getElementById('wa');
+const elRhoDisplay = document.getElementById('rho-display');
+const elWADisplay  = document.getElementById('wa-display');
+const elRPVal = document.getElementById('rp-val');
+const elSPVal = document.getElementById('sp-val');
+
+// ---- Color helpers ----
+const COLOR_A = { r: 0, g: 114, b: 178 };    // #0072B2
+const COLOR_B = { r: 230, g: 159, b: 0 };     // #E69F00
+
+function lerpColor(wA) {
+  const wB = 1 - wA;
+  const r = Math.round(COLOR_A.r * wA + COLOR_B.r * wB);
+  const g = Math.round(COLOR_A.g * wA + COLOR_B.g * wB);
+  const b = Math.round(COLOR_A.b * wA + COLOR_B.b * wB);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ---- Portfolio math ----
+function portfolioReturn(wA, rA, rB) {
+  return wA * rA + (1 - wA) * rB;
+}
+
+function portfolioStd(wA, sA, sB, rho) {
+  const wB = 1 - wA;
+  const v = wA * wA * sA * sA + wB * wB * sB * sB + 2 * wA * wB * rho * sA * sB;
+  return Math.sqrt(Math.max(v, 0));
+}
+
+// ---- Chart drawing ----
+function draw() {
+  const rA  = parseFloat(elRA.value) || 0;
+  const rB  = parseFloat(elRB.value) || 0;
+  const sA  = parseFloat(elSA.value) || 0.01;
+  const sB  = parseFloat(elSB.value) || 0.01;
+  const rho = parseFloat(elRho.value);
+  const wA  = parseFloat(elWA.value);
+
+  // Compute selected portfolio
+  const rpSel = portfolioReturn(wA, rA, rB);
+  const spSel = portfolioStd(wA, sA, sB, rho);
+  elRPVal.textContent = rpSel.toFixed(2) + '%';
+  elSPVal.textContent = spSel.toFixed(2) + '%';
+
+  // Compute frontier points (w from 0 to 1)
+  const N = 200;
+  const pts = [];
+  for (let i = 0; i <= N; i++) {
+    const w = i / N;
+    pts.push({
+      w,
+      r: portfolioReturn(w, rA, rB),
+      s: portfolioStd(w, sA, sB, rho)
+    });
+  }
+
+  // Determine axis ranges with padding
+  let minS = Infinity, maxS = -Infinity, minR = Infinity, maxR = -Infinity;
+  for (const p of pts) {
+    if (p.s < minS) minS = p.s;
+    if (p.s > maxS) maxS = p.s;
+    if (p.r < minR) minR = p.r;
+    if (p.r > maxR) maxR = p.r;
+  }
+
+  // Guard: if returns are equal, create a small artificial range so axes don't collapse
+  if (maxR - minR < 0.001) {
+    maxR = minR + 2;
+    minR = minR - 2;
+  }
+  if (maxS - minS < 0.001) {
+    maxS = minS + 2;
+  }
+
+  const padS = (maxS - minS) * 0.15;
+  const padR = (maxR - minR) * 0.15;
+
+  // X axis always starts at 0
+  minS = 0;
+  maxS = maxS + padS;
+
+  // Y axis starts at 0 if both expected returns are non-negative
+  if (rA >= 0 && rB >= 0) {
+    minR = 0;
+    maxR = maxR + padR;
+  } else {
+    minR = minR - padR;
+    maxR = maxR + padR;
+  }
+
+  // HiDPI
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const W = rect.width;
+  const H = rect.height;
+
+  // Chart area
+  const margin = { top: 20, right: 25, bottom: 50, left: 60 };
+  const cw = W - margin.left - margin.right;
+  const ch = H - margin.top - margin.bottom;
+
+  function xMap(s) { return margin.left + (s - minS) / (maxS - minS) * cw; }
+  function yMap(r) { return margin.top + ch - (r - minR) / (maxR - minR) * ch; }
+
+  // Clear
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#e5e2dd';
+  ctx.lineWidth = 0.5;
+  const nTicksX = 6;
+  const nTicksY = 6;
+
+  function niceStep(range, maxTicks) {
+    const rough = range / maxTicks;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const res = rough / mag;
+    let step;
+    if (res <= 1.5) step = 1 * mag;
+    else if (res <= 3) step = 2 * mag;
+    else if (res <= 7) step = 5 * mag;
+    else step = 10 * mag;
+    return step;
+  }
+
+  const stepX = niceStep(maxS - minS, nTicksX);
+  const stepY = niceStep(maxR - minR, nTicksY);
+
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.fillStyle = '#9ca3af';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+
+  // X gridlines & labels
+  let startX = Math.ceil(minS / stepX) * stepX;
+  for (let v = startX; v <= maxS; v += stepX) {
+    const x = xMap(v);
+    ctx.beginPath();
+    ctx.moveTo(x, margin.top);
+    ctx.lineTo(x, margin.top + ch);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1) + '%', x, margin.top + ch + 8);
+  }
+
+  // Y gridlines & labels
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  let startY = Math.ceil(minR / stepY) * stepY;
+  for (let v = startY; v <= maxR; v += stepY) {
+    const y = yMap(v);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, y);
+    ctx.lineTo(margin.left + cw, y);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1) + '%', margin.left - 8, y);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '13px "Source Serif 4", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Portfolio Standard Deviation (σ)', margin.left + cw / 2, H - 14);
+
+  ctx.save();
+  ctx.translate(14, margin.top + ch / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Expected Return E[R]', 0, 0);
+  ctx.restore();
+
+  // Draw the frontier curve as colored segments
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i];
+    const p1 = pts[i + 1];
+    const midW = (p0.w + p1.w) / 2;
+    ctx.strokeStyle = lerpColor(midW);
+    ctx.beginPath();
+    ctx.moveTo(xMap(p0.s), yMap(p0.r));
+    ctx.lineTo(xMap(p1.s), yMap(p1.r));
+    ctx.stroke();
+  }
+
+  // Draw asset dots
+  function drawDot(s, r, color, label, offsetX, offsetY) {
+    const x = xMap(s);
+    const y = yMap(r);
+    ctx.beginPath();
+    ctx.arc(x, y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.font = 'bold 14px "Source Serif 4", Georgia, serif';
+    ctx.textAlign = offsetX < 0 ? 'right' : 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x + offsetX, y + offsetY);
+  }
+
+  drawDot(sA, rA, '#0072B2', 'A', -12, 0);
+  drawDot(sB, rB, '#E69F00', 'B', 12, 0);
+
+  // Draw selected portfolio X
+  const xSel = xMap(spSel);
+  const ySel = yMap(rpSel);
+  const sz = 8;
+  ctx.strokeStyle = lerpColor(wA);
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(xSel - sz, ySel - sz);
+  ctx.lineTo(xSel + sz, ySel + sz);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xSel + sz, ySel - sz);
+  ctx.lineTo(xSel - sz, ySel + sz);
+  ctx.stroke();
+
+  // Label for selected portfolio (w_A = value, with A as a subscript)
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+  const baseFont = '13px "JetBrains Mono", monospace';
+  const subFont  = '10px "JetBrains Mono", monospace';
+  let lx = xSel + 12;
+  const ly = ySel - 4;
+  ctx.font = baseFont;
+  ctx.fillText('w', lx, ly);
+  lx += ctx.measureText('w').width;
+  ctx.font = subFont;
+  ctx.fillText('A', lx, ly + 2);          // lowered slightly for subscript
+  lx += ctx.measureText('A').width;
+  ctx.font = baseFont;
+  ctx.fillText('=' + wA.toFixed(2), lx, ly);
+}
+
+// ---- Slider <-> numeric input syncing ----
+// Clamp to [min,max] and round to 2 decimals. Returns null for non-numeric input.
+function clampRound(val, min, max) {
+  if (isNaN(val)) return null;
+  val = Math.min(max, Math.max(min, val));
+  return Math.round(val * 100) / 100;
+}
+
+// Asset parameter fields just redraw on input
+for (const el of [elRA, elRB, elSA, elSB]) {
+  el.addEventListener('input', draw);
+}
+
+// Generic wiring: a range slider and a numeric box that stay in sync.
+function wireSliderPair(slider, box, min, max) {
+  // Slider drives the box
+  slider.addEventListener('input', () => {
+    box.value = parseFloat(slider.value).toFixed(2);
+    draw();
+  });
+  // Box drives the slider live (clamped/rounded) without rewriting text mid-typing
+  box.addEventListener('input', () => {
+    const v = clampRound(parseFloat(box.value), min, max);
+    if (v === null) return;
+    slider.value = v;
+    draw();
+  });
+  // On commit (blur/Enter), normalize the box to the clamped, 2-decimal value
+  box.addEventListener('change', () => {
+    const v = clampRound(parseFloat(box.value), min, max);
+    const final = (v === null) ? parseFloat(slider.value) : v;
+    slider.value = final;
+    box.value = final.toFixed(2);
+    draw();
+  });
+}
+
+wireSliderPair(elRho, elRhoDisplay, -1, 1);
+wireSliderPair(elWA,  elWADisplay,   0, 1);
+
+// Resize handling
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(draw, 50);
+});
+
+// Initial draw
+draw();
+</script>
+</body>
+</html>
