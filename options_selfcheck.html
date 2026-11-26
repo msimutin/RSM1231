@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSM 1231: Options Self-Check</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --c1: #0072B2; --c2: #E69F00; --c3: #009E73; --c4: #CC79A7; --c5: #D55E00;
+    --bg: #faf9f7; --panel-bg: #ffffff; --text: #1a1a1a; --text-muted: #6b7280;
+    --border: #e5e2dd; --accent: #1a1a1a; --input-bg: #f5f4f2;
+    --ok: #009E73; --ok-ink: #00684a; --ok-bg: #ebf6f1; --ok-line: #b5ddcd;
+    --bad: #CC3311; --bad-ink: #a3260b; --bad-bg: #fcece8; --bad-line: #f0c3b8;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --type: var(--c1);
+  }
+  body { font-family: var(--serif); background: var(--bg); color: var(--text); min-height: 100vh;
+         padding: 2rem 1.5rem 3rem; line-height: 1.45; font-variant-numeric: lining-nums; }
+  .container { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem; }
+  sub { font-size: 0.72em; line-height: 0; }
+  sup { font-size: 0.72em; line-height: 0; }
+  button { font: inherit; color: inherit; }
+  .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px;
+           box-shadow: var(--shadow); margin-bottom: 0.75rem; }
+  .muted { color: var(--text-muted); }
+  .nowrap { white-space: nowrap; }
+
+  .section-label {
+    font-family: var(--mono); font-size: 0.8rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);
+    display: inline-flex; align-items: center; gap: 0.5rem; flex-shrink: 0;
+  }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    font-family: var(--mono); font-size: 0.76rem; padding: 0.4rem 0.85rem;
+    border: 1px solid var(--border); border-radius: 6px; background: var(--input-bg);
+    cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; white-space: nowrap;
+  }
+  .btn:hover { background: #ebe8e3; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #3a3a3a; }
+  .btn.big { font-size: 0.86rem; padding: 0.6rem 1.4rem; letter-spacing: 0.02em; }
+  .btn[aria-expanded="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn[aria-expanded="true"]:hover { background: #3a3a3a; }
+
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--input-bg); }
+  .seg button {
+    font-family: var(--mono); font-size: 0.74rem; padding: 0.38rem 0.8rem;
+    border: 0; background: transparent; cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button:hover:not(.active) { background: #ebe8e3; }
+  .seg button.active { background: var(--accent); color: #fff; }
+
+  /* ---------- toolbar ---------- */
+  .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem 1.5rem; padding: 0.8rem 1.3rem; }
+  .toolbar .group { display: flex; align-items: center; gap: 0.6rem 0.9rem; flex-wrap: wrap; }
+  .toolbar .right { margin-left: auto; }
+  .code-wrap { font-family: var(--mono); font-size: 0.74rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.4rem; }
+  .code-btn { font-family: var(--mono); font-size: 0.74rem; font-weight: 600; color: var(--text); background: none;
+              border: 0; border-bottom: 1px dashed #b9b4ac; padding: 0 0.05rem; cursor: pointer; letter-spacing: 0.03em; }
+  .code-btn:hover { border-bottom-color: var(--text); }
+  .code-form { display: inline-flex; gap: 0.35rem; align-items: center; }
+  .code-form[hidden] { display: none; }
+  .code-form input { font-family: var(--mono); font-size: 0.74rem; width: 6.6rem; padding: 0.3rem 0.45rem;
+                     border: 1px solid var(--border); border-radius: 6px; background: #fff; text-transform: uppercase; }
+  .code-form input:focus { outline: 2px solid rgba(0,114,178,0.35); outline-offset: 0; }
+  .code-err { color: var(--bad-ink); font-size: 0.74rem; font-family: var(--mono); }
+
+  /* ---------- cheat sheet ---------- */
+  .sheet { padding: 1rem 1.3rem 1.1rem; }
+  .sheet[hidden] { display: none; }
+  .sheet-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.25rem 2rem; margin-top: 0.6rem; align-items: start; }
+  @media (max-width: 760px) { .sheet-grid { grid-template-columns: minmax(0, 1fr); } }
+  table.cheat { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+  table.cheat th, table.cheat td { padding: 0.28rem 0.6rem; text-align: center; border-bottom: 1px solid #efece7; }
+  table.cheat th { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+  table.cheat td:first-child { text-align: left; color: var(--text-muted); }
+  .cheat-h { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 0.1rem 0 0.25rem; }
+  .cheat-side p { font-size: 0.93rem; margin-bottom: 0.75rem; }
+  .formula { font-size: 1.08rem !important; display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+  .frac { display: inline-flex; flex-direction: column; align-items: stretch; text-align: center; vertical-align: middle; line-height: 1.15; }
+  .frac > span:first-child { border-bottom: 1px solid var(--text); padding: 0 0.2rem; }
+  .frac > span:last-child { padding: 0 0.2rem; }
+
+  /* ---------- scenario ---------- */
+  .scen { padding: 1rem 1.3rem 1.1rem; border-left: 4px solid var(--type); }
+  .scen-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+  .type-badge { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+                color: #fff; background: var(--type); border-radius: 5px; padding: 0.18rem 0.55rem; }
+  .scen-text { font-size: 1.06rem; line-height: 1.6; max-width: 52rem; }
+  .scen-text b { font-weight: 600; }
+  .givens { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
+  .chip { font-size: 0.95rem; background: var(--input-bg); border: 1px solid var(--border); border-radius: 999px;
+          padding: 0.2rem 0.75rem; white-space: nowrap; font-variant-numeric: lining-nums tabular-nums; }
+
+  /* ---------- question sections ---------- */
+  .qsec { padding: 1rem 1.3rem 1.1rem; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.35rem; }
+  .sec-num { font-family: var(--mono); display: inline-flex; align-items: center; justify-content: center;
+             width: 1.35rem; height: 1.35rem; border-radius: 50%; background: var(--accent); color: #fff;
+             font-size: 0.72rem; letter-spacing: 0; }
+  .sec-score { font-family: var(--mono); font-size: 0.76rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 999px; }
+  .sec-score:empty { display: none; }
+  .sec-score.all { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-line); }
+  .sec-score.some { background: var(--bad-bg); color: var(--bad-ink); border: 1px solid var(--bad-line); }
+  .sec-intro { color: var(--text-muted); font-size: 0.93rem; margin-bottom: 0.7rem; max-width: 52rem; }
+
+  .q { border: 1px solid transparent; border-radius: 9px; padding: 0.55rem 0.7rem 0.6rem; margin: 0 -0.7rem;
+       transition: background 0.2s, border-color 0.2s; scroll-margin-top: 1rem; }
+  .q + .q { margin-top: 0.25rem; }
+  .q-row { display: flex; gap: 0.7rem; align-items: flex-start; }
+  .qn { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; flex-shrink: 0; margin-top: 0.12rem;
+        width: 1.45rem; height: 1.45rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+        background: var(--input-bg); border: 1px solid var(--border); color: var(--text-muted); }
+  .q-body { flex: 1; min-width: 0; }
+  .q-prompt { font-size: 1rem; margin-bottom: 0.45rem; }
+  .q-hint { color: var(--text-muted); font-size: 0.88rem; }
+  .q.ok { background: var(--ok-bg); border-color: var(--ok-line); }
+  .q.bad { background: var(--bad-bg); border-color: var(--bad-line); }
+  .q.ok .qn { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .q.bad .qn { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .fb { display: none; font-size: 0.9rem; line-height: 1.45; margin-top: 0.45rem; padding-left: 2.15rem; }
+  .q.ok .fb, .q.bad .fb { display: block; }
+  .q.ok .fb { color: var(--ok-ink); }
+  .q.bad .fb { color: var(--bad-ink); }
+  .fb .tag { font-weight: 600; }
+  .fb .why { color: #3d3a36; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem 1.6rem; margin-top: 0.25rem; }
+  .pair > .q + .q { margin-top: 0; }
+  @media (max-width: 700px) { .pair { grid-template-columns: minmax(0, 1fr); } .pair > .q + .q { margin-top: 0.25rem; } }
+
+  /* choices */
+  .opts { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .opts.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .opts.stack { display: grid; grid-template-columns: minmax(0, 1fr); }
+  @media (max-width: 700px) { .opts.grid2 { grid-template-columns: minmax(0, 1fr); } }
+  .opt {
+    font-family: var(--serif); font-size: 0.96rem; text-align: left; line-height: 1.35;
+    padding: 0.42rem 0.8rem; border: 1px solid var(--border); border-radius: 7px; background: var(--input-bg);
+    cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s; position: relative;
+  }
+  .opt:hover:not(:disabled):not(.sel) { background: #ebe8e3; }
+  .opt.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .opt:disabled { cursor: default; }
+  .graded .opt { opacity: 0.6; }
+  .graded .opt.sel, .graded .opt.key { opacity: 1; }
+  .graded .opt.sel.right { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .graded .opt.sel.wrong { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .graded .opt.key:not(.sel) { background: #fff; border: 2px solid var(--ok); color: var(--ok-ink); padding: calc(0.42rem - 1px) calc(0.8rem - 1px); }
+  .opt .mk { font-family: var(--mono); font-weight: 600; margin-right: 0.4rem; }
+
+  /* numeric fields */
+  .num-wrap { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+  .money-in { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 7px;
+              background: #fff; padding: 0 0.5rem 0 0.55rem; transition: border-color 0.15s, box-shadow 0.15s; }
+  .money-in:focus-within { border-color: #9fc3dc; box-shadow: 0 0 0 2px rgba(0,114,178,0.18); }
+  .money-in .cur { color: var(--text-muted); font-size: 0.98rem; margin-right: 0.15rem; }
+  .money-in input { font-family: var(--serif); font-size: 1rem; font-variant-numeric: lining-nums tabular-nums;
+                    border: 0; outline: 0; background: transparent; width: 6.2rem; padding: 0.34rem 0; color: var(--text); }
+  .money-in input::placeholder { color: #b3aea6; }
+  .money-in.bad-entry { border-color: var(--bad); }
+  .money-in.dis { background: var(--input-bg); }
+  .q.ok .money-in { border-color: var(--ok); }
+  .q.bad .money-in { border-color: var(--bad); }
+  .inf-btn { font-family: var(--mono); font-size: 0.72rem; padding: 0.36rem 0.65rem; border: 1px solid var(--border);
+             border-radius: 6px; background: var(--input-bg); cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s; }
+  .inf-btn:hover:not(:disabled):not(.on) { background: #ebe8e3; }
+  .inf-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .inf-btn:disabled { cursor: default; }
+  .entry-msg { font-size: 0.82rem; color: var(--bad-ink); font-style: italic; }
+  .entry-msg:empty { display: none; }
+
+  /* cross tables (sections 2 and 3) */
+  .xtab { display: grid; grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 1.1rem;
+          align-items: stretch; margin-top: 0.15rem; }
+  .xh { font-family: var(--mono); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.06em; color: var(--text-muted);
+        padding: 0.35rem 0 0.4rem; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+  .xh.st { font-family: var(--serif); font-size: 0.98rem; text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .xh .v { font-family: var(--serif); font-size: 1rem; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 600; }
+  .xl { font-size: 0.98rem; padding: 0.95rem 0 0.6rem; }
+  .xtab .q { margin: 0.3rem 0; padding: 0.5rem 0.6rem 0.55rem; }
+  .xtab .q-row { align-items: center; }
+  .xtab .fb { padding-left: 0; margin-top: 0.4rem; }
+  .xtab .cell-label { display: none; }
+  .xtab .opts { flex-wrap: nowrap; }
+  .xtab .opt { padding: 0.38rem 0.95rem; }
+  .row-end { grid-column: 1 / -1; border-bottom: 1px solid #f0ede8; }
+  .xtab .row-end:last-child { display: none; }
+  @media (max-width: 700px) {
+    .xtab { grid-template-columns: minmax(0, 1fr); }
+    .xtab .xh { display: none; }
+    .xl { padding: 0.8rem 0 0.1rem; font-weight: 600; }
+    .row-end { display: none; }
+    .xtab .cell-label { display: block; font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.3rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .xtab .cell-label.st { font-family: var(--serif); font-size: 0.95rem; text-transform: none; letter-spacing: 0; }
+    .xtab .cell-label .v { font-family: var(--serif); font-size: 0.92rem; text-transform: none; letter-spacing: 0; color: var(--text); }
+  }
+  .solo { margin-top: 0.6rem; }
+
+  /* ---------- submit / result ---------- */
+  .submit-bar { padding: 1rem 1.3rem; display: flex; align-items: center; gap: 1rem 1.25rem; flex-wrap: wrap; }
+  .submit-bar[hidden] { display: none; }
+  #answered { font-family: var(--mono); font-size: 0.78rem; }
+  .result { padding: 1.1rem 1.3rem; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem 1.6rem; align-items: center; }
+  .result[hidden] { display: none; }
+  @media (max-width: 700px) { .result { grid-template-columns: auto minmax(0, 1fr); } .result-btns { grid-column: 1 / -1; } }
+  .score-big { font-variant-numeric: lining-nums tabular-nums; line-height: 1; white-space: nowrap; }
+  .score-big .num { font-size: 2.6rem; font-weight: 600; letter-spacing: -0.02em; }
+  .score-big .of { font-size: 1.2rem; color: var(--text-muted); margin-left: 0.25rem; }
+  .score-msg { font-size: 0.98rem; margin-bottom: 0.5rem; }
+  .score-msg .pct { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); margin-right: 0.45rem; }
+  .strip { display: flex; flex-wrap: wrap; gap: 0.28rem; }
+  .strip button { font-family: var(--mono); font-size: 0.66rem; font-weight: 600; width: 1.6rem; height: 1.6rem; border-radius: 5px;
+                  border: 0; color: #fff; cursor: pointer; transition: transform 0.1s; }
+  .strip button:hover { transform: translateY(-1px); }
+  .strip .ok { background: var(--ok); }
+  .strip .bad { background: var(--bad); }
+  .strip .gap { width: 0.45rem; }
+  .result-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* ---------- chart ---------- */
+  .chart-panel { padding: 1rem 1.25rem 1rem; }
+  .chart-panel[hidden] { display: none; }
+  .panel-head { display: flex; align-items: baseline; gap: 0.35rem 1.2rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.88rem; color: var(--text-muted); }
+  .lg { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+  .lg i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; }
+  .lg .dotk { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .lg .tri { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid #4b5563; display: inline-block; }
+  .canvas-wrap { position: relative; }
+  canvas { width: 100%; display: block; cursor: crosshair; touch-action: pan-y; }
+  .tip { position: absolute; top: 0; left: 0; display: none; pointer-events: none; z-index: 2;
+         background: rgba(255,255,255,0.97); border: 1px solid var(--border); border-radius: 8px;
+         box-shadow: 0 4px 14px rgba(0,0,0,0.08); padding: 0.4rem 0.65rem 0.45rem; font-size: 0.86rem; line-height: 1.5; white-space: nowrap;
+         font-variant-numeric: lining-nums tabular-nums; }
+  .tip .th { font-weight: 600; margin-bottom: 0.1rem; }
+  .tip .r { display: flex; justify-content: space-between; gap: 1rem; }
+  .chart-note { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; }
+
+  .foot { font-size: 0.84rem; color: var(--text-muted); margin-top: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>RSM 1231: Options Self-Check</h1>
+  <p class="subtitle">Answer the questions, press Submit, and see what you got right and why.</p>
+
+  <div class="panel toolbar">
+    <div class="group">
+      <span class="section-label">Option type</span>
+      <div class="seg" id="segType" role="group" aria-label="Option type">
+        <button data-v="random" class="active">Random</button><button data-v="call">Call</button><button data-v="put">Put</button>
+      </div>
+      <button class="btn primary" id="btnNew">New option</button>
+    </div>
+    <div class="group right">
+      <span class="code-wrap">Scenario <button class="code-btn" id="codeBtn" title="Load a scenario by its code">—</button></span>
+      <form class="code-form" id="codeForm" hidden autocomplete="off">
+        <input id="codeIn" placeholder="e.g. P-20417" aria-label="Scenario code" spellcheck="false">
+        <button class="btn" type="submit">Load</button>
+        <span class="code-err" id="codeErr"></span>
+      </form>
+      <button class="btn" id="btnSheet" aria-expanded="false" aria-controls="sheet">Cheat sheet</button>
+    </div>
+  </div>
+
+  <div class="panel sheet" id="sheet" hidden>
+    <span class="section-label">Cheat sheet</span>
+    <div class="sheet-grid">
+      <table class="cheat">
+        <thead><tr><th></th><th>Call option</th><th>Put option</th></tr></thead>
+        <tbody>
+          <tr><td>Right to</td><td>buy at <i>X</i></td><td>sell at <i>X</i></td></tr>
+          <tr><td>In the money</td><td><i>S</i> &gt; <i>X</i></td><td><i>S</i> &lt; <i>X</i></td></tr>
+          <tr><td>At the money</td><td><i>S</i> = <i>X</i></td><td><i>S</i> = <i>X</i></td></tr>
+          <tr><td>Out of the money</td><td><i>S</i> &lt; <i>X</i></td><td><i>S</i> &gt; <i>X</i></td></tr>
+          <tr><td>Price today</td><td><i>C</i></td><td><i>P</i></td></tr>
+          <tr><td>Value at expiration</td><td>max(0, <i>S</i><sub><i>T</i></sub> − <i>X</i>)</td><td>max(0, <i>X</i> − <i>S</i><sub><i>T</i></sub>)</td></tr>
+          <tr><td>Intrinsic value, IV</td><td>max(0, <i>S</i> − <i>X</i>)</td><td>max(0, <i>X</i> − <i>S</i>)</td></tr>
+          <tr><td>Time value</td><td><i>C</i> − IV</td><td><i>P</i> − IV</td></tr>
+        </tbody>
+      </table>
+      <div class="cheat-side">
+        <div class="cheat-h">Profit or loss at expiration</div>
+        <p>Buyer: value at expiration minus the price paid today. Seller: the same amount with the opposite sign.</p>
+        <div class="cheat-h">Put-call parity</div>
+        <p class="formula"><i>C</i> + <span class="frac"><span><i>X</i></span><span>(1 + <i>R</i><sub>F</sub>)<sup><i>T</i></sup></span></span> = <i>S</i> + <i>P</i></p>
+        <p>Same stock, same <i>X</i>, same <i>T</i>, European options, no dividends. If one side costs more, sell it and buy the other side.</p>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel scen" id="scen">
+    <div class="scen-head"><span class="section-label">The option</span><span class="type-badge" id="typeBadge">Call</span></div>
+    <p class="scen-text" id="scenText"></p>
+    <div class="givens" id="givens"></div>
+  </section>
+
+  <div id="quiz"></div>
+
+  <div class="panel submit-bar" id="submitBar">
+    <button class="btn primary big" id="btnSubmit">Submit answers</button>
+    <span id="answered" class="muted"></span>
+  </div>
+
+  <div class="panel result" id="result" hidden>
+    <div class="score-big"><span class="num" id="scoreNum">0</span><span class="of" id="scoreOf">/ 18</span></div>
+    <div>
+      <div class="score-msg" id="scoreMsg"></div>
+      <div class="strip" id="strip"></div>
+    </div>
+    <div class="result-btns">
+      <button class="btn" id="btnRetry">Try again</button>
+      <button class="btn primary" id="btnNew2">New option</button>
+    </div>
+  </div>
+
+  <section class="panel chart-panel" id="chartPanel" hidden>
+    <div class="panel-head">
+      <span class="section-label">The picture: profit at expiration</span>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="canvas-wrap"><canvas id="chart"></canvas><div class="tip" id="tip"></div></div>
+    <p class="chart-note" id="chartNote"></p>
+  </section>
+
+  <p class="foot">Companies are fictional. Option prices are generated to be realistic and to satisfy put-call parity.</p>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+/* ================= numbers and formatting ================= */
+const MINUS = '−';
+const r2 = v => Math.round((v + (v >= 0 ? 1e-9 : -1e-9)) * 100) / 100;
+const money = v => { v = r2(v); return (v < 0 ? MINUS : '') + '$' + Math.abs(v).toFixed(2); };
+const smoney = v => { v = r2(v); return (v > 0 ? '+' : v < 0 ? MINUS : '') + '$' + Math.abs(v).toFixed(2); };
+// operand inside a worked calculation: whole numbers without decimals, like the slides
+const n = v => { v = r2(v); const a = Math.abs(v); return (v < 0 ? MINUS : '') + (Number.isInteger(a) ? String(a) : a.toFixed(2)); };
+const pct = R => (R * 100).toFixed(2) + '%';
+const onePlusR = R => String(+(1 + R).toFixed(4));
+const V = { S: '<i>S</i>', X: '<i>X</i>', ST: '<i>S</i><sub><i>T</i></sub>', RF: '<i>R</i><sub>F</sub>', T: '<i>T</i>', C: '<i>C</i>', P: '<i>P</i>' };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* ================= random numbers and pricing ================= */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function ncdf(x) { // Abramowitz-Stegun 26.2.17, |error| < 7.5e-8
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989422804014327 * Math.exp(-x * x / 2);
+  const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x > 0 ? 1 - p : p;
+}
+// Black-Scholes with r = ln(1 + R_F), so X e^{-rT} = X / (1 + R_F)^T and parity holds with discrete compounding
+function bsm(S, X, T, R, sig) {
+  const r = Math.log(1 + R), sT = sig * Math.sqrt(T);
+  const d1 = (Math.log(S / X) + (r + sig * sig / 2) * T) / sT, d2 = d1 - sT;
+  const df = Math.pow(1 + R, -T);
+  return { c: S * ncdf(d1) - X * df * ncdf(d2), p: X * df * ncdf(-d2) - S * ncdf(-d1) };
+}
+
+const COMPANIES = [
+  ['Lakeshore Robotics', 'LKSR'], ['Northbound Rail', 'NBRL'], ['Maple Ridge Analytics', 'MRAN'], ['Harbourline Foods', 'HBLF'],
+  ['Cedar Peak Mining', 'CDPK'], ['Bluewater Logistics', 'BLWT'], ['Granite Shield Insurance', 'GRSH'], ['Aurora Biolabs', 'AUBL'],
+  ['Kestrel Aerospace', 'KSTA'], ['Ironwood Energy', 'IRWE'], ['Fernhill Media', 'FRNM'], ['Silverline Semiconductors', 'SLVS'],
+  ['Quarry Lane Materials', 'QLMT'], ['Polaris Payments', 'PLRP'], ['Thornbury Pharma', 'THRP'], ['Willow Creek Brewing', 'WCBR'],
+  ['Copperleaf Software', 'CPLF'], ['Riverstone Telecom', 'RVST'], ['Halcyon Hotels', 'HLCH'], ['Bramblewood Outdoor', 'BRWD'],
+  ['Saltmarsh Shipping', 'SMSH'], ['Juniper Grid Utilities', 'JNGU'], ['Ottawa Valley Dairy', 'OVDY'], ['Prairie Wind Power', 'PRWP'],
+];
+const DAYS = [21, 30, 45, 60, 90, 120, 180, 270, 365];
+
+function makeScenario(type, num) {
+  const rng = mulberry32((num * 2654435761) ^ (type === 'call' ? 0x5bd1e995 : 0x27d4eb2f));
+  const U = (a, b) => a + (b - a) * rng();
+  const pick = arr => arr[Math.floor(rng() * arr.length)];
+  const gauss = () => Math.sqrt(-2 * Math.log(1 - rng())) * Math.cos(2 * Math.PI * rng());
+  const isCall = type === 'call';
+  for (let attempt = 0; attempt < 2000; attempt++) {
+    const [name, tick] = pick(COMPANIES);
+    let S = Math.round(Math.exp(U(Math.log(20), Math.log(400))));
+    const step = S < 25 ? 1 : S < 60 ? 2.5 : S < 200 ? 5 : 10;
+    let X;
+    if (rng() < 0.12) { X = Math.round(S / step) * step; S = X; }                       // at the money
+    else X = Math.round(S * Math.min(1.25, Math.max(0.8, Math.exp(0.1 * gauss()))) / step) * step;
+    if (X <= 0) continue;
+    const days = pick(DAYS), T = days / 365;
+    const R = (6 + Math.floor(rng() * 17)) * 0.0025;                                       // 1.50% to 5.50%
+    const sig = U(0.2, 0.55);
+    const bs = bsm(S, X, T, R, sig);
+    const price = r2(isCall ? bs.c : bs.p);
+    const intr = r2(isCall ? Math.max(0, S - X) : Math.max(0, X - S));
+    const tv = r2(price - intr);
+    if (price < 0.5 || tv < 0.1) continue;
+    const pvx = r2(X / Math.pow(1 + R, T));
+    const fair = r2(isCall ? price + pvx - S : price + S - pvx);                            // parity price of the other option
+    if (fair < 0.3) continue;
+
+    // two stock prices at expiration, one on each side of X; half the time the in-the-money one
+    // sits between X and break-even (exercised, yet the buyer still loses)
+    const g = X >= 40 ? 1 : 0.5, snap = v => Math.round(v / g) * g;
+    const be = r2(isCall ? X + price : X - price);
+    const room = Math.ceil(price / g - 1e-9) - 1;
+    const trap = room >= 1 && rng() < 0.5;
+    let itm, otm;
+    if (isCall) {
+      itm = trap ? X + g * (1 + Math.floor(rng() * room)) : snap(be + U(0.04, 0.2) * X);
+      otm = snap(X - U(0.05, 0.25) * X); if (otm >= X) otm = X - g;
+    } else {
+      itm = trap ? X - g * (1 + Math.floor(rng() * room)) : snap(be - U(0.04, 0.2) * X);
+      otm = snap(X + U(0.05, 0.25) * X); if (otm <= X) otm = X + g;
+    }
+    if (itm <= 0 || otm <= 0) continue;
+    if (!trap && (isCall ? itm <= be : itm >= be)) continue;
+    const lo = Math.min(itm, otm), hi = Math.max(itm, otm);
+
+    // a market price for the other option that violates parity
+    const gap = r2(U(0.25, 1.25) * Math.max(1, S / 100));
+    let dir = rng() < 0.5 ? 1 : -1;
+    if (fair - gap < 0.1) dir = 1;
+    const mkt = r2(fair + dir * gap);
+    const order = [0, 1, 2, 3];
+    for (let i = 3; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+
+    return { type, num, code: (isCall ? 'C' : 'P') + '-' + num, name, tick, S, X, days, T, R, sig, price, intr, tv,
+             pvx, fair, be, lo, hi, trap, mkt, over: dir > 0, order, other: isCall ? 'put' : 'call' };
+  }
+  return null;
+}
+
+/* ================= questions ================= */
+function buildQuestions(sc) {
+  const isCall = sc.type === 'call', O = sc.type, OP = isCall ? V.C : V.P, M = sc.other, MP = isCall ? V.P : V.C;
+  const q = [];
+  const X = money(sc.X), price = money(sc.price);
+  const payoff = s => isCall ? Math.max(0, s - sc.X) : Math.max(0, sc.X - s);
+
+  // ---- 1. Today
+  q.push({ id: 'right', sec: 0, kind: 'choice', layout: 'grid2', prompt: `The buyer of this ${O} has`,
+    choices: [['rb', `The right to buy one share at ${X}`], ['rs', `The right to sell one share at ${X}`],
+              ['ob', `The obligation to buy one share at ${X}`], ['os', `The obligation to sell one share at ${X}`]],
+    correct: isCall ? 'rb' : 'rs',
+    why: isCall ? `A call gives its buyer the right, but not the obligation, to buy at ${V.X}. The seller is the one with the obligation: to sell at ${X} if the buyer exercises.`
+                : `A put gives its buyer the right, but not the obligation, to sell at ${V.X}. The seller is the one with the obligation: to buy at ${X} if the buyer exercises.` });
+
+  const mny = sc.S === sc.X ? 'atm' : ((sc.S > sc.X) === isCall ? 'itm' : 'otm');
+  const rel = sc.S > sc.X ? '&gt;' : '&lt;';
+  const mnyWhy = mny === 'atm' ? `${V.S} = ${V.X} = ${money(sc.S)}, so the ${O} is at the money.`
+    : `A ${O} is ${mny === 'itm' ? 'in' : 'out of'} the money when ${V.S} ${rel} ${V.X}: here ${V.S} = ${money(sc.S)} ${rel} ${V.X} = ${X}.`;
+  q.push({ id: 'money', sec: 0, kind: 'choice', prompt: `Today, the ${O} is`,
+    choices: [['itm', 'In the money'], ['atm', 'At the money'], ['otm', 'Out of the money']], correct: mny, why: mnyWhy });
+
+  const ivForm = isCall ? `max(0, ${V.S} − ${V.X}) = max(0, ${n(sc.S)} − ${n(sc.X)})` : `max(0, ${V.X} − ${V.S}) = max(0, ${n(sc.X)} − ${n(sc.S)})`;
+  q.push({ id: 'intr', sec: 0, kind: 'num', pair: 'a', prompt: `Intrinsic value of the ${O} today`, correct: sc.intr, tol: 0.011,
+    why: `${ivForm} = ${money(sc.intr)}` });
+  q.push({ id: 'tv', sec: 0, kind: 'num', pair: 'b', prompt: `Time value of the ${O} today`, correct: sc.tv, tol: 0.011,
+    why: `${OP} − intrinsic value = ${n(sc.price)} − ${n(sc.intr)} = ${money(sc.tv)}` + (sc.intr === 0 ? ': all of the price is time value' : '') });
+
+  // ---- 2. At expiration
+  const sts = [sc.lo, sc.hi].map(st => {
+    const ex = isCall ? st > sc.X : st < sc.X, pay = r2(payoff(st));
+    return { st, ex, pay, pl: r2(pay - sc.price), stS: money(st) };
+  });
+  sts.forEach((t, k) => {
+    let w;
+    if (t.ex) w = isCall ? `Buying at ${X} beats the market price of ${t.stS}` : `Selling at ${X} beats the market price of ${t.stS}`;
+    else w = isCall ? `Buying at ${X} a share worth only ${t.stS} would lose money` : `Selling at ${X} a share worth ${t.stS} would lose money`;
+    if (t.ex && t.pl < 0) w += `, so the buyer exercises, even though the ${price} paid still means an overall loss`;
+    q.push({ id: 'ex' + k, sec: 1, kind: 'choice', cell: k, row: 0, choices: [['yes', 'Yes'], ['no', 'No']], correct: t.ex ? 'yes' : 'no', why: w + '.' });
+  });
+  sts.forEach((t, k) => q.push({ id: 'cf' + k, sec: 1, kind: 'num', cell: k, row: 1, correct: t.pay, tol: 0.011,
+    why: (isCall ? `max(0, ${V.ST} − ${V.X}) = max(0, ${n(t.st)} − ${n(sc.X)})` : `max(0, ${V.X} − ${V.ST}) = max(0, ${n(sc.X)} − ${n(t.st)})`) + ` = ${money(t.pay)}` }));
+  sts.forEach((t, k) => q.push({ id: 'pl' + k, sec: 1, kind: 'num', cell: k, row: 2, correct: t.pl, tol: 0.011, signed: true,
+    why: `Cash flow at expiration − price paid = ${n(t.pay)} − ${n(sc.price)} = ${money(t.pl)}` + (t.pl < 0 ? ' (a loss)' : t.pl > 0 ? ' (a profit)' : '') }));
+  q.push({ id: 'be', sec: 1, kind: 'num', solo: true, prompt: `Break-even: at what stock price at expiration does the buyer exactly break even?`,
+    correct: sc.be, tol: 0.011,
+    why: isCall ? `The payoff ${V.ST} − ${V.X} must recover the price paid: ${V.ST} = ${V.X} + ${V.C} = ${n(sc.X)} + ${n(sc.price)} = ${money(sc.be)}. The buyer profits above it.`
+                : `The payoff ${V.X} − ${V.ST} must recover the price paid: ${V.ST} = ${V.X} − ${V.P} = ${n(sc.X)} − ${n(sc.price)} = ${money(sc.be)}. The buyer profits below it.` });
+
+  // ---- 3. Best and worst cases
+  const xp = r2(sc.X - sc.price);
+  if (isCall) {
+    q.push({ id: 'bmax', sec: 2, kind: 'inf', role: 0, col: 0, correct: 'inf', why: `Unlimited: the call pays ${V.ST} − ${V.X}, and ${V.ST} has no upper limit.` });
+    q.push({ id: 'bmin', sec: 2, kind: 'inf', role: 0, col: 1, correct: sc.price, loss: true, why: `If ${V.ST} ≤ ${X}, the call expires worthless and the buyer loses the ${price} paid.` });
+    q.push({ id: 'smax', sec: 2, kind: 'inf', role: 1, col: 0, correct: sc.price, why: `The ${price} received today, kept in full if ${V.ST} ≤ ${X}.` });
+    q.push({ id: 'smin', sec: 2, kind: 'inf', role: 1, col: 1, correct: 'inf', loss: true, why: `Unlimited: the seller owes ${V.ST} − ${V.X}, and ${V.ST} has no upper limit.` });
+  } else {
+    q.push({ id: 'bmax', sec: 2, kind: 'inf', role: 0, col: 0, correct: xp, why: `If the stock goes to $0, the put pays ${X}: ${n(sc.X)} − ${n(sc.price)} = ${money(xp)}.` });
+    q.push({ id: 'bmin', sec: 2, kind: 'inf', role: 0, col: 1, correct: sc.price, loss: true, why: `If ${V.ST} ≥ ${X}, the put expires worthless and the buyer loses the ${price} paid.` });
+    q.push({ id: 'smax', sec: 2, kind: 'inf', role: 1, col: 0, correct: sc.price, why: `The ${price} received today, kept in full if ${V.ST} ≥ ${X}.` });
+    q.push({ id: 'smin', sec: 2, kind: 'inf', role: 1, col: 1, correct: xp, loss: true, why: `If the stock goes to $0, the seller pays ${X} for a worthless share: ${n(sc.X)} − ${n(sc.price)} = ${money(xp)}.` });
+  }
+
+  // ---- 4. Put-call parity
+  const tExp = sc.days === 365 ? '' : `<sup>${sc.days}/365</sup>`;
+  const disc = `${n(sc.X)}/${onePlusR(sc.R)}${tExp}`;
+  const pvTerm = `<span class="nowrap">${V.X}/(1 + ${V.RF})<sup>${V.T}</sup></span>`;
+  const parWhy = isCall
+    ? `${V.P} = ${V.C} + ${pvTerm} − ${V.S} = ${n(sc.price)} + ${disc} − ${n(sc.S)} = ${n(sc.price)} + ${n(sc.pvx)} − ${n(sc.S)} = ${money(sc.fair)}`
+    : `${V.C} = ${V.P} + ${V.S} − ${pvTerm} = ${n(sc.price)} + ${n(sc.S)} − ${disc} = ${n(sc.price)} + ${n(sc.S)} − ${n(sc.pvx)} = ${money(sc.fair)}`;
+  q.push({ id: 'par', sec: 3, kind: 'num', solo: true, correct: sc.fair, tol: 0.03,
+    prompt: `Use put-call parity to find the price of a European ${M} on ${sc.tick} with the same strike and expiration.`, why: parWhy });
+
+  // arbitrage: + = buy / long / lend, - = sell / short / borrow
+  const s = sc.over ? -1 : 1;
+  const right = M === 'put' ? { put: s, share: s, call: -s, bond: -s } : { call: s, bond: s, share: -s, put: -s };
+  const flipBond = o => ({ ...o, bond: -o.bond }), neg = o => ({ call: -o.call, put: -o.put, share: -o.share, bond: -o.bond });
+  const cands = [right, flipBond(right), neg(right), flipBond(neg(right))];
+  const leg = (l, v) => l === 'share' ? (v > 0 ? 'buy the share' : 'short the share')
+    : l === 'bond' ? (v > 0 ? 'lend' : 'borrow') + ` the present value of ${X}` : (v > 0 ? 'buy the ' : 'sell the ') + l;
+  const stratText = o => { const L = [M, 'share', O, 'bond'].map(l => leg(l, o[l])); return cap(`${L[0]}, ${L[1]}, ${L[2]}, and ${L[3]}`); };
+  const choices = sc.order.map(i => ['s' + i, stratText(cands[i])]);
+  const expSide = (M === 'put') === sc.over ? 'share + put' : 'call + bond', cheapSide = expSide === 'share + put' ? 'call + bond' : 'share + put';
+  const gapAbs = r2(Math.abs(sc.mkt - sc.fair));
+  q.push({ id: 'arb', sec: 3, kind: 'choice', layout: 'stack', solo: true,
+    prompt: `Now suppose the ${M} actually trades at <b>${money(sc.mkt)}</b>, and you can buy or sell any quantity of anything at the prices above. Which trade earns an arbitrage profit?`,
+    choices, correct: 's0',
+    why: `At ${money(sc.mkt)}, the ${M} is ${money(gapAbs)} ${sc.over ? 'above' : 'below'} its parity price of ${money(sc.fair)}, so ${expSide} costs more than ${cheapSide}. Sell what is expensive (${expSide}) and buy what is cheap (${cheapSide}).` });
+  q.push({ id: 'arbp', sec: 3, kind: 'num', solo: true, correct: gapAbs, tol: 0.03, loss: true,
+    prompt: `With that trade, how much do you collect today, per share?`,
+    why: `${sc.over ? `${n(sc.mkt)} − ${n(sc.fair)}` : `${n(sc.fair)} − ${n(sc.mkt)}`} = ${money(gapAbs)} today, and the four positions cancel exactly at expiration, whatever the stock does.` });
+
+  q.forEach((x, i) => x.num = i + 1);
+  return q;
+}
+
+/* ================= state ================= */
+const app = { pref: 'random', sc: null, qs: [], ans: {}, graded: false };
+const byId = id => app.qs.find(q => q.id === id);
+
+/* ================= rendering ================= */
+function inputNum(q, extraCls = '') {
+  const im = q.signed ? 'text' : 'decimal';
+  return `<label class="money-in ${extraCls}"><span class="cur">$</span><input type="text" inputmode="${im}" data-q="${q.id}" autocomplete="off" spellcheck="false" aria-label="Question ${q.num}"></label>`;
+}
+function inputFor(q) {
+  if (q.kind === 'choice') {
+    const cls = q.layout ? ' ' + q.layout : '';
+    return `<div class="opts${cls}" role="group">` + q.choices.map(([v, l]) =>
+      `<button type="button" class="opt" data-q="${q.id}" data-v="${v}"><span class="lbl">${l}</span></button>`).join('') + `</div>`;
+  }
+  if (q.kind === 'inf') return `<div class="num-wrap">${inputNum(q)}<button type="button" class="inf-btn" data-inf="${q.id}" aria-pressed="false">Unlimited</button></div>`;
+  return `<div class="num-wrap">${inputNum(q)}<span class="entry-msg" data-msg="${q.id}"></span></div>`;
+}
+function qBlock(q, { prompt = true, cellLabel = '' } = {}) {
+  return `<div class="q" id="q-${q.id}" data-qbox="${q.id}">
+    <div class="q-row"><span class="qn">${q.num}</span><div class="q-body">${cellLabel}${prompt && q.prompt ? `<div class="q-prompt">${q.prompt}</div>` : ''}${inputFor(q)}</div></div>
+    <div class="fb" data-fb="${q.id}"></div></div>`;
+}
+function secHead(i, title) {
+  return `<div class="sec-head"><span class="section-label"><span class="sec-num">${i + 1}</span>${title}</span><span class="sec-score" data-secscore="${i}"></span></div>`;
+}
+
+function render() {
+  const sc = app.sc, isCall = sc.type === 'call', O = sc.type;
+  document.documentElement.style.setProperty('--type', isCall ? 'var(--c1)' : 'var(--c2)');
+  $('#typeBadge').textContent = isCall ? 'Call' : 'Put';
+  $('#codeBtn').textContent = sc.code;
+  const daysTxt = sc.days === 365 ? 'one year (365 days)' : `${sc.days} days`;
+  $('#scenText').innerHTML =
+    `<b>${sc.name}</b> (${sc.tick}) trades at <b>${money(sc.S)}</b> today. A European <b>${O}</b> option on ${sc.tick} has a strike price of <b>${money(sc.X)}</b> ` +
+    `and expires in <b>${daysTxt}</b>. It costs <b>${money(sc.price)}</b>. The risk-free rate is <b>${pct(sc.R)}</b> per year, with annual compounding, ` +
+    `and ${sc.tick} pays no dividends. All amounts are per share.`;
+  $('#givens').innerHTML = [
+    `${V.S} = ${money(sc.S)}`, `${V.X} = ${money(sc.X)}`, `${V.T} = ${sc.days === 365 ? '1 year' : sc.days + '/365 years'}`,
+    `${isCall ? V.C : V.P} = ${money(sc.price)}`, `${V.RF} = ${pct(sc.R)} per year`
+  ].map(t => `<span class="chip">${t}</span>`).join('');
+
+  const q = byId;
+  const stHead = st => `If ${V.ST} = <span class="v">${money(st)}</span>`;
+  let h = '';
+  // section 1
+  h += `<section class="panel qsec" data-sec="0">${secHead(0, 'Today')}
+    <p class="sec-intro">What the ${O} gives its owner, and what its ${money(sc.price)} price is made of.</p>
+    ${qBlock(q('right'))}${qBlock(q('money'))}
+    <div class="pair">${qBlock(q('intr'))}${qBlock(q('tv'))}</div></section>`;
+  // section 2
+  const rows = [`Is the ${O} exercised?`, `Buyer's cash flow at expiration`, `Buyer's profit or loss <span class="q-hint">(− for a loss)</span>`];
+  const sts = [sc.lo, sc.hi];
+  h += `<section class="panel qsec" data-sec="1">${secHead(1, 'At expiration')}
+    <p class="sec-intro">Suppose ${sc.tick} ends up at one of the two prices below on the expiration date. The buyer paid ${money(sc.price)} today; ignore the time value of money, as in class.</p>
+    <div class="xtab"><div class="xh"></div><div class="xh st">${stHead(sc.lo)}</div><div class="xh st">${stHead(sc.hi)}</div>`;
+  rows.forEach((label, r) => {
+    h += `<div class="xl">${label}</div>`;
+    [0, 1].forEach(k => {
+      const qq = app.qs.find(x => x.sec === 1 && x.row === r && x.cell === k);
+      h += qBlock(qq, { prompt: false, cellLabel: `<div class="cell-label st">${stHead(sts[k])}</div>` });
+    });
+    h += `<div class="row-end"></div>`;
+  });
+  h += `</div><div class="solo">${qBlock(q('be'))}</div></section>`;
+  // section 3
+  h += `<section class="panel qsec" data-sec="2">${secHead(2, 'Best and worst cases')}
+    <p class="sec-intro">Over every possible stock price at expiration, counting the ${money(sc.price)} paid or received today. Enter a loss as a positive amount, or choose Unlimited.</p>
+    <div class="xtab"><div class="xh"></div><div class="xh">Maximum profit</div><div class="xh">Maximum loss</div>`;
+  [`Buyer <span class="q-hint">(long ${O})</span>`, `Seller <span class="q-hint">(short ${O})</span>`].forEach((label, r) => {
+    h += `<div class="xl">${label}</div>`;
+    [0, 1].forEach(c => {
+      const qq = app.qs.find(x => x.sec === 2 && x.role === r && x.col === c);
+      h += qBlock(qq, { prompt: false, cellLabel: `<div class="cell-label">${c === 0 ? 'Maximum profit' : 'Maximum loss'}</div>` });
+    });
+    h += `<div class="row-end"></div>`;
+  });
+  h += `</div></section>`;
+  // section 4
+  h += `<section class="panel qsec" data-sec="3">${secHead(3, 'Put-call parity')}
+    <p class="sec-intro">Use discrete (annual) compounding with ${V.T} = ${sc.days === 365 ? '1' : sc.days + '/365'}, and round to the cent.</p>
+    ${qBlock(q('par'))}${qBlock(q('arb'))}${qBlock(q('arbp'))}</section>`;
+  $('#quiz').innerHTML = h;
+  $('#scoreOf').textContent = '/ ' + app.qs.length;
+  updateCount();
+}
+
+/* ================= answers ================= */
+function parseNum(s) {
+  if (s == null) return null;
+  s = String(s).replace(/[\s$,]/g, '').replace(/[−–—]/g, '-');
+  if (s === '') return null;
+  if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+  return Number(s);
+}
+function answered(q) {
+  const a = app.ans[q.id];
+  if (!a) return false;
+  if (q.kind === 'choice') return !!a.v;
+  if (a.inf) return true;
+  const v = parseNum(a.text);
+  return v !== null && !Number.isNaN(v);
+}
+function updateCount() {
+  const k = app.qs.filter(answered).length;
+  $('#answered').textContent = `${k} of ${app.qs.length} answered`;
+}
+
+function grade(q) {
+  const a = app.ans[q.id] || {};
+  if (!answered(q)) return { ok: false, blank: true };
+  if (q.kind === 'choice') return { ok: a.v === q.correct };
+  if (q.correct === 'inf') return { ok: !!a.inf };
+  if (a.inf) return { ok: false };
+  let v = parseNum(a.text);
+  if (q.loss) v = Math.abs(v);
+  return { ok: Math.abs(v - q.correct) <= (q.tol ?? 0.011) + 1e-9 };
+}
+function answerText(q) {
+  if (q.kind === 'choice') return q.choices.find(c => c[0] === q.correct)[1];
+  if (q.correct === 'inf') return 'Unlimited';
+  return money(q.correct);
+}
+
+function submit() {
+  app.graded = true;
+  const res = app.qs.map(q => ({ q, g: grade(q) }));
+  res.forEach(({ q, g }) => {
+    const box = $(`[data-qbox="${q.id}"]`);
+    box.classList.add(g.ok ? 'ok' : 'bad');
+    let tag;
+    if (g.ok) tag = '✓ Correct.';
+    else if (g.blank) tag = `✗ Not answered. Answer: ${answerText(q)}.`;
+    else tag = `✗ Answer: ${answerText(q)}.`;
+    if (q.kind === 'choice' && q.layout === 'stack' && !g.ok) tag = g.blank ? '✗ Not answered. The answer is marked.' : '✗ The correct trade is marked.';
+    if (q.kind === 'choice' && q.layout === 'grid2' && !g.ok) tag = g.blank ? '✗ Not answered. The answer is marked.' : '✗ The correct answer is marked.';
+    $(`[data-fb="${q.id}"]`).innerHTML = `<span class="tag">${tag}</span> <span class="why">${q.why}</span>`;
+    if (q.kind === 'choice') {
+      box.classList.add('graded');
+      $$(`.opt[data-q="${q.id}"]`, box).forEach(b => {
+        const isKey = b.dataset.v === q.correct, isSel = b.classList.contains('sel');
+        if (isKey) b.classList.add('key');
+        if (isSel) b.classList.add(isKey ? 'right' : 'wrong');
+        const mk = isSel ? (isKey ? '✓' : '✗') : (isKey ? '✓' : '');
+        if (mk) b.insertAdjacentHTML('afterbegin', `<span class="mk">${mk}</span>`);
+      });
+    }
+  });
+  $$('#quiz button, #quiz input').forEach(el => el.disabled = true);
+  $$('#quiz .money-in').forEach(el => el.classList.add('dis'));
+  $$('.entry-msg').forEach(el => el.textContent = '');
+
+  [0, 1, 2, 3].forEach(s => {
+    const r = res.filter(x => x.q.sec === s), k = r.filter(x => x.g.ok).length, el = $(`[data-secscore="${s}"]`);
+    el.textContent = `${k} / ${r.length}`;
+    el.className = 'sec-score ' + (k === r.length ? 'all' : 'some');
+  });
+  const k = res.filter(x => x.g.ok).length, N = res.length, p = Math.round(100 * k / N);
+  $('#scoreNum').textContent = k;
+  const msg = k === N ? 'Perfect score. Try a new option, or switch between calls and puts.'
+    : p >= 75 ? 'Solid work. Read the explanations in red, then try again or get a new option.'
+    : 'Read the explanations in red, check the cheat sheet, then press Try again.';
+  $('#scoreMsg').innerHTML = `<span class="pct">${p}%</span>${msg}`;
+  let strip = '';
+  res.forEach(({ q, g }, i) => {
+    if (i > 0 && res[i - 1].q.sec !== q.sec) strip += '<span class="gap"></span>';
+    strip += `<button class="${g.ok ? 'ok' : 'bad'}" data-jump="${q.id}" title="Question ${q.num}">${q.num}</button>`;
+  });
+  $('#strip').innerHTML = strip;
+  $('#submitBar').hidden = true;
+  $('#result').hidden = false;
+  $('#chartPanel').hidden = false;
+  drawChart();
+  $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetAnswers() {
+  app.ans = {}; app.graded = false;
+  render();
+  $('#submitBar').hidden = false; $('#result').hidden = true; $('#chartPanel').hidden = true;
+}
+function loadScenario(type, num, { scroll = false } = {}) {
+  const sc = makeScenario(type, num);
+  if (!sc) return false;
+  app.sc = sc; app.qs = buildQuestions(sc);
+  resetAnswers();
+  try { history.replaceState(null, '', '#' + sc.code); } catch (e) { /* ignore */ }
+  if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  return true;
+}
+function newScenario(scroll) {
+  const type = app.pref === 'random' ? (Math.random() < 0.5 ? 'call' : 'put') : app.pref;
+  loadScenario(type, 10000 + Math.floor(Math.random() * 90000), { scroll });
+}
+function parseCode(s) {
+  const m = /^\s*#?\s*([CP])\s*-?\s*(\d{1,6})\s*$/i.exec(s || '');
+  return m ? { type: m[1].toUpperCase() === 'C' ? 'call' : 'put', num: +m[2] } : null;
+}
+
+/* ================= chart ================= */
+function niceTicks(a, b, maxN) {
+  const span = b - a, raw = span / maxN, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(k => k * mag).find(s => span / s <= maxN) || 10 * mag;
+  const out = [];
+  for (let v = Math.ceil(a / step - 1e-9) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(10));
+  return { step, ticks: out };
+}
+const chart = { geo: null, hover: null };
+function drawChart() {
+  const sc = app.sc; if (!sc || $('#chartPanel').hidden) return;
+  const isCall = sc.type === 'call', O = sc.type;
+  $('#legend').innerHTML =
+    `<span class="lg"><i style="background:var(--c1)"></i>Buyer (long ${O})</span>` +
+    `<span class="lg"><i style="background:var(--c2)"></i>Seller (short ${O})</span>` +
+    `<span class="lg"><span class="dotk" style="background:#fff;border:2px solid var(--text)"></span>Break-even</span>` +
+    `<span class="lg"><span class="dotk" style="background:var(--text-muted)"></span>Prices from section 2</span>` +
+    `<span class="lg"><span class="tri"></span>Stock price today</span>`;
+  $('#chartNote').innerHTML = `Hover over the chart to read both profits at any price. The two lines mirror each other: every dollar the buyer makes, the seller loses.` +
+    (isCall ? '' : ` The buyer's best case, ${money(sc.X - sc.price)}, comes at ${V.ST} = $0, to the left of the chart.`);
+  const cv = $('#chart'), wrap = cv.parentElement;
+  const W = wrap.clientWidth, H = Math.round(Math.max(270, Math.min(380, W * 0.42)));
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); cv.style.height = H + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const m = { l: 60, r: 18, t: 30, b: 46 };
+  const f = s => (isCall ? Math.max(0, s - sc.X) : Math.max(0, sc.X - s)) - sc.price;
+  const pts = [sc.lo, sc.hi, sc.be, sc.S, sc.X];
+  const a = Math.min(...pts), b = Math.max(...pts), pad = Math.max(0.12 * sc.X, 0.22 * (b - a));
+  const x0 = Math.max(0, a - pad), x1 = b + pad;
+  const ymax = Math.max(Math.abs(f(x0)), Math.abs(f(x1)), sc.price) * 1.15;
+  const px = s => m.l + (s - x0) / (x1 - x0) * (W - m.l - m.r);
+  const py = v => m.t + (ymax - v) / (2 * ymax) * (H - m.t - m.b);
+  chart.geo = { x0, x1, m, W, H, px, f };
+
+  // grid and axes
+  const xt = niceTicks(x0, x1, W < 520 ? 5 : 9), yt = niceTicks(-ymax, ymax, 6);
+  const fmtTick = (v, step) => { const a = Math.abs(v), d = Number.isInteger(step) ? 0 : Number.isInteger(step * 2) ? 1 : 2;
+    return (v < -1e-9 ? MINUS : '') + (d && Number.isInteger(+a.toFixed(6)) ? String(Math.round(a)) : a.toFixed(d)); };
+  ctx.font = '11px "IBM Plex Mono", monospace'; ctx.fillStyle = '#6b7280'; ctx.lineWidth = 1;
+  yt.ticks.forEach(v => {
+    const y = Math.round(py(v)) + 0.5;
+    ctx.strokeStyle = Math.abs(v) < 1e-9 ? '#9a958d' : '#efece7';
+    ctx.beginPath(); ctx.moveTo(m.l, y); ctx.lineTo(W - m.r, y); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(fmtTick(v, yt.step), m.l - 8, y);
+  });
+  xt.ticks.forEach(v => {
+    const x = Math.round(px(v)) + 0.5;
+    ctx.strokeStyle = '#efece7'; ctx.beginPath(); ctx.moveTo(x, m.t); ctx.lineTo(x, H - m.b); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(fmtTick(v, xt.step), x, H - m.b + 7);
+  });
+  ctx.strokeStyle = '#cfcac2'; ctx.beginPath(); ctx.moveTo(m.l + 0.5, m.t); ctx.lineTo(m.l + 0.5, H - m.b); ctx.lineTo(W - m.r, H - m.b + 0.5); ctx.stroke();
+  // axis titles
+  ctx.fillStyle = '#4b5563'; ctx.font = '13px "Source Serif 4", Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const xTitleY = H - 8;
+  const t1 = `${sc.tick} price at expiration, `, w1 = ctx.measureText(t1).width, wS = ctx.measureText('S').width;
+  ctx.font = 'italic 10px "Source Serif 4", Georgia, serif'; const wT = ctx.measureText('T').width;
+  ctx.font = '13px "Source Serif 4", Georgia, serif'; const w3 = ctx.measureText(' ($)').width;
+  let tx = (m.l + W - m.r) / 2 - (w1 + wS + wT + w3) / 2;
+  ctx.textAlign = 'left'; ctx.fillText(t1, tx, xTitleY); tx += w1;
+  ctx.font = 'italic 13px "Source Serif 4", Georgia, serif'; ctx.fillText('S', tx, xTitleY); tx += wS;
+  ctx.font = 'italic 10px "Source Serif 4", Georgia, serif'; ctx.fillText('T', tx, xTitleY + 3); tx += wT;
+  ctx.font = '13px "Source Serif 4", Georgia, serif'; ctx.fillText(' ($)', tx, xTitleY);
+  ctx.save(); ctx.translate(15, (m.t + H - m.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center';
+  ctx.fillText('Profit at expiration ($)', 0, 0); ctx.restore();
+
+  // strike and break-even guides with labels in the top margin, pushed apart
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = '#b8b2a9';
+  [sc.X].forEach(v => { const x = Math.round(px(v)) + 0.5; ctx.beginPath(); ctx.moveTo(x, m.t - 4); ctx.lineTo(x, H - m.b); ctx.stroke(); });
+  ctx.setLineDash([]);
+  ctx.font = '11.5px "IBM Plex Mono", monospace'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#4b5563';
+  const xLab = `X = ${n(sc.X)}`, bLab = `break-even ${n(sc.be)}`;
+  const xX = px(sc.X), xB = px(sc.be);
+  // call: break-even lies right of X, so the X label goes left of its line and the break-even label right of its line; put: mirrored
+  const topLabel = (txt, x, alignRight) => {
+    const w = ctx.measureText(txt).width;
+    let left = alignRight ? x - 6 - w : x + 6;
+    left = Math.max(m.l + 2, Math.min(W - m.r - w, left));
+    ctx.textAlign = 'left'; ctx.fillText(txt, left, m.t - 10);
+  };
+  topLabel(xLab, xX, isCall); topLabel(bLab, xB, !isCall);
+  ctx.setLineDash([2, 3]); ctx.strokeStyle = '#cfc9c0';
+  { const x = Math.round(xB) + 0.5; ctx.beginPath(); ctx.moveTo(x, m.t - 4); ctx.lineTo(x, py(0)); ctx.stroke(); }
+  ctx.setLineDash([]);
+
+  // today's price marker on the x axis
+  { const x = px(sc.S), y = H - m.b;
+    ctx.fillStyle = '#4b5563'; ctx.beginPath(); ctx.moveTo(x, y - 8); ctx.lineTo(x - 5, y); ctx.lineTo(x + 5, y); ctx.closePath(); ctx.fill(); }
+
+  // profit lines
+  const line = (sign, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath(); [x0, sc.X, x1].forEach((s, i) => { const x = px(s), y = py(sign * f(s)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+  };
+  ctx.save(); ctx.beginPath(); ctx.rect(m.l, m.t - 2, W - m.l - m.r, H - m.t - m.b + 4); ctx.clip();
+  line(-1, '#E69F00'); line(1, '#0072B2');
+  ctx.restore();
+
+  // the two prices from section 2
+  ctx.font = '600 11.5px "IBM Plex Mono", monospace'; ctx.textAlign = 'center';
+  [sc.lo, sc.hi].forEach(st => {
+    const vb = r2(f(st)), x = px(st);
+    ctx.setLineDash([2, 3]); ctx.strokeStyle = '#cfc9c0'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, Math.min(py(vb), py(-vb))); ctx.lineTo(Math.round(x) + 0.5, H - m.b); ctx.stroke(); ctx.setLineDash([]);
+    [[vb, '#0072B2', '#005a8c'], [-vb, '#E69F00', '#a86f00']].forEach(([v, col, ink]) => {
+      const y = py(v);
+      ctx.fillStyle = col; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, y, 5.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      const above = v >= -v;
+      const slope = (isCall ? (st > sc.X ? 1 : 0) : (st < sc.X ? -1 : 0)) * (v === vb ? 1 : -1);  // of this line, in data units
+      // above the dot the line runs to the right if it is rising, so put the label on the left (and mirror below the dot)
+      const side = slope === 0 ? 0 : ((slope > 0) === above ? -1 : 1);
+      ctx.textAlign = side < 0 ? 'right' : side > 0 ? 'left' : 'center';
+      ctx.fillStyle = ink; ctx.textBaseline = above ? 'alphabetic' : 'top';
+      ctx.fillText(smoney(v).replace('$', ''), x + side * 7, above ? y - 9 : y + 9);
+    });
+  });
+  // break-even dot (both lines cross zero there)
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(xB, py(0), 5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+
+  // hover crosshair
+  if (chart.hover != null) {
+    const s = chart.hover, x = px(s);
+    ctx.strokeStyle = 'rgba(26,26,26,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, m.t); ctx.lineTo(Math.round(x) + 0.5, H - m.b); ctx.stroke();
+    [[f(s), '#0072B2'], [-f(s), '#E69F00']].forEach(([v, col]) => {
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, py(v), 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    });
+  }
+}
+function chartMove(e) {
+  const g = chart.geo; if (!g) return;
+  const rect = $('#chart').getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (x < g.m.l || x > g.W - g.m.r) { chartLeave(); return; }
+  let s = g.x0 + (x - g.m.l) / (g.W - g.m.l - g.m.r) * (g.x1 - g.x0);
+  s = Math.round(s * (app.sc.X >= 40 ? 1 : 4)) / (app.sc.X >= 40 ? 1 : 4);
+  chart.hover = s; drawChart();
+  const tip = $('#tip'), vb = r2(g.f(s));
+  tip.innerHTML = `<div class="th">${V.ST} = ${money(s)}</div>
+    <div class="r"><span style="color:#005a8c">Buyer</span><span>${smoney(vb)}</span></div>
+    <div class="r"><span style="color:#a86f00">Seller</span><span>${smoney(-vb)}</span></div>`;
+  tip.style.display = 'block';
+  const tw = tip.offsetWidth, left = g.px(s) + 14 + tw > g.W ? g.px(s) - 14 - tw : g.px(s) + 14;
+  tip.style.left = left + 'px'; tip.style.top = (g.m.t + 6) + 'px';
+}
+function chartLeave() { chart.hover = null; $('#tip').style.display = 'none'; drawChart(); }
+
+/* ================= events ================= */
+$('#quiz').addEventListener('click', e => {
+  if (app.graded) return;
+  const opt = e.target.closest('.opt');
+  if (opt) {
+    const id = opt.dataset.q;
+    app.ans[id] = { v: opt.dataset.v };
+    $$(`.opt[data-q="${id}"]`).forEach(b => b.classList.toggle('sel', b === opt));
+    updateCount(); return;
+  }
+  const inf = e.target.closest('.inf-btn');
+  if (inf) {
+    const id = inf.dataset.inf, a = app.ans[id] || (app.ans[id] = {});
+    a.inf = !a.inf;
+    inf.classList.toggle('on', a.inf); inf.setAttribute('aria-pressed', a.inf);
+    const inp = $(`input[data-q="${id}"]`);
+    inp.disabled = a.inf; inp.closest('.money-in').classList.toggle('dis', a.inf);
+    if (a.inf) { inp.value = ''; a.text = ''; inp.closest('.money-in').classList.remove('bad-entry'); }
+    else inp.focus();
+    updateCount();
+  }
+});
+$('#quiz').addEventListener('input', e => {
+  const inp = e.target.closest('input[data-q]'); if (!inp) return;
+  const id = inp.dataset.q, a = app.ans[id] || (app.ans[id] = {});
+  a.text = inp.value;
+  const v = parseNum(inp.value), bad = Number.isNaN(v);
+  inp.closest('.money-in').classList.toggle('bad-entry', bad);
+  const msg = $(`[data-msg="${id}"]`); if (msg) msg.textContent = bad ? 'Enter a number, like 4.25' : '';
+  updateCount();
+});
+$('#quiz').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const inp = e.target.closest('input[data-q]'); if (!inp) return;
+  e.preventDefault();
+  const all = $$('#quiz input[data-q]:not(:disabled)'), i = all.indexOf(inp);
+  if (i >= 0 && i < all.length - 1) all[i + 1].focus(); else $('#btnSubmit').focus();
+});
+$('#btnSubmit').addEventListener('click', submit);
+$('#btnRetry').addEventListener('click', () => { resetAnswers(); $('#scen').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+$('#btnNew').addEventListener('click', () => newScenario(false));
+$('#btnNew2').addEventListener('click', () => newScenario(true));
+$('#strip').addEventListener('click', e => {
+  const b = e.target.closest('[data-jump]'); if (!b) return;
+  $(`#q-${b.dataset.jump}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+$('#segType').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  app.pref = b.dataset.v;
+  $$('#segType button').forEach(x => x.classList.toggle('active', x === b));
+  if (app.pref !== 'random' && app.sc && app.sc.type !== app.pref) newScenario(false);
+});
+$('#btnSheet').addEventListener('click', () => {
+  const s = $('#sheet'); s.hidden = !s.hidden; $('#btnSheet').setAttribute('aria-expanded', !s.hidden);
+});
+$('#codeBtn').addEventListener('click', () => {
+  const f = $('#codeForm'); f.hidden = !f.hidden; $('#codeErr').textContent = '';
+  if (!f.hidden) { $('#codeIn').value = ''; $('#codeIn').focus(); }
+});
+$('#codeForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const c = parseCode($('#codeIn').value);
+  if (!c || !loadScenario(c.type, c.num)) { $('#codeErr').textContent = 'Codes look like C-12345 or P-12345'; return; }
+  $('#codeForm').hidden = true;
+});
+const cv = $('#chart');
+cv.addEventListener('mousemove', chartMove);
+cv.addEventListener('mouseleave', chartLeave);
+cv.addEventListener('touchstart', e => { chartMove(e.touches[0]); }, { passive: true });
+cv.addEventListener('touchmove', e => { chartMove(e.touches[0]); }, { passive: true });
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawChart, 80); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawChart);
+
+// testing hook: load a hand-specified scenario (used to check the slides' examples)
+window.__selfcheck = {
+  app, makeScenario, buildQuestions, bsm,
+  custom(o) {
+    const isCall = o.type === 'call';
+    const T = o.days / 365, intr = r2(isCall ? Math.max(0, o.S - o.X) : Math.max(0, o.X - o.S));
+    const pvx = r2(o.X / Math.pow(1 + o.R, T));
+    const fair = r2(isCall ? o.price + pvx - o.S : o.price + o.S - pvx);
+    const sc = Object.assign({ num: 0, code: 'custom', name: 'Test Co.', tick: 'TEST', T, intr, tv: r2(o.price - intr), pvx, fair,
+      be: r2(isCall ? o.X + o.price : o.X - o.price), trap: false, order: [0, 1, 2, 3], other: isCall ? 'put' : 'call' }, o);
+    sc.over = sc.mkt > sc.fair;
+    app.sc = sc; app.qs = buildQuestions(sc); resetAnswers(); return sc;
+  }
+};
+
+// start: a code in the address (e.g. #P-20417) loads that scenario
+const fromHash = parseCode(decodeURIComponent((location.hash || '').slice(1)));
+if (!(fromHash && loadScenario(fromHash.type, fromHash.num))) newScenario(false);
+window.addEventListener('hashchange', () => {
+  const c = parseCode(decodeURIComponent((location.hash || '').slice(1)));
+  if (c && (!app.sc || (c.type + c.num) !== (app.sc.type + app.sc.num))) loadScenario(c.type, c.num, { scroll: true });
+});
+})();
+</script>
+</body>
+</html>
