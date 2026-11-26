@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSM 1231: Introduction to Calls and Puts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --c1: #0072B2; --c2: #E69F00; --c3: #009E73; --c4: #CC79A7; --c5: #D55E00;
+    --buyer: #0072B2; --buyer-ink: #005a8c; --buyer-bg: #eef5fb;
+    --seller: #E69F00; --seller-ink: #8f5f00; --seller-bg: #fdf6e8;
+    --cash: #009E73; --share: #CC79A7; --rightc: #4b5563;
+    --bg: #faf9f7; --panel-bg: #ffffff; --text: #1a1a1a; --text-muted: #6b7280;
+    --border: #e5e2dd; --accent: #1a1a1a; --input-bg: #f5f4f2;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+  }
+  body { font-family: var(--serif); background: var(--bg); color: var(--text); min-height: 100vh;
+         padding: 2rem 1.5rem 3rem; line-height: 1.45; font-variant-numeric: lining-nums; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.25rem; max-width: 60rem; }
+  sub, sup { font-size: 0.72em; line-height: 0; }
+  button { font: inherit; color: inherit; }
+  .panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 0.85rem; }
+  .section-label { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+  .num { font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+
+  /* ---------- controls ---------- */
+  .btn { font-family: var(--mono); font-size: 0.76rem; padding: 0.42rem 0.85rem; border: 1px solid var(--border); border-radius: 6px;
+         background: var(--input-bg); cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; white-space: nowrap; }
+  .btn:hover { background: #ebe8e3; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: #3a3a3a; }
+  .btn[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn[aria-expanded="true"]:hover { background: #3a3a3a; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 7px; overflow: hidden; background: var(--input-bg); }
+  .seg button { font-family: var(--mono); font-size: 0.84rem; font-weight: 600; padding: 0.45rem 1.25rem; border: 0; background: transparent;
+                cursor: pointer; transition: background 0.15s, color 0.15s; letter-spacing: 0.04em; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button:hover:not(.active) { background: #ebe8e3; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem 1.25rem; padding: 0.8rem 1.3rem; }
+  .toolbar .right { margin-left: auto; display: flex; gap: 0.5rem; }
+
+  /* ---------- glossary ---------- */
+  .glossary { padding: 1rem 1.3rem 1.1rem; }
+  .glossary[hidden] { display: none; }
+  .gl-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.7rem 2rem; margin-top: 0.7rem; }
+  @media (max-width: 760px) { .gl-grid { grid-template-columns: minmax(0, 1fr); } }
+  .gl-item dt { font-weight: 600; font-size: 0.95rem; }
+  .gl-item dd { font-size: 0.92rem; color: #3d3a36; }
+
+  /* ---------- the contract ---------- */
+  .contract { position: relative; background: #fffdf8; border: 1px solid #ddd5c4; border-radius: 6px;
+              box-shadow: var(--shadow), inset 0 0 0 5px #fffdf8, inset 0 0 0 6px #e9e1cf;
+              padding: 1.4rem 1.8rem 1.3rem; margin-bottom: 0.85rem; }
+  .ct-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+  .ct-kicker { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: #8a7d62; }
+  .ct-title { font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; margin-top: 0.1rem; }
+  .ct-sym { font-family: var(--mono); font-size: 0.8rem; color: #6d6450; border: 1px solid #e3dac6; border-radius: 5px; padding: 0.22rem 0.55rem; background: #fffaf0; }
+  .ct-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.4rem 1.6rem; padding: 0.85rem 0; border-top: 1px solid #ebe3d2; border-bottom: 1px solid #ebe3d2; }
+  .ct-grid dt { font-family: var(--mono); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8a7d62; padding-top: 0.2rem; }
+  .ct-grid dd { font-size: 1.02rem; }
+  .ct-grid dd b { font-weight: 600; }
+  @media (max-width: 600px) { .ct-grid { grid-template-columns: minmax(0, 1fr); gap: 0.05rem; } .ct-grid dd { margin-bottom: 0.45rem; } .contract { padding: 1.1rem 1.1rem; } }
+  .ct-text { font-size: 1.04rem; line-height: 1.6; margin-top: 0.9rem; max-width: 62rem; }
+  .ct-sign { display: flex; gap: 1.5rem 3rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .sig { flex: 1; min-width: 14rem; border-top: 1px solid #cfc5ae; padding-top: 0.3rem; font-size: 0.86rem; color: #6d6450; display: flex; align-items: center; gap: 0.45rem; }
+  .sig .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .contract .term { font-weight: 600; border-bottom: 2px dotted #b4975a; background: linear-gradient(transparent 60%, rgba(230,159,0,0.13) 60%); }
+
+  /* ---------- defined terms and tooltip ---------- */
+  .term { border-bottom: 1.5px dotted #98a1ab; cursor: help; transition: background 0.15s; border-radius: 2px; }
+  .term:hover, .term:focus, .term.on { background: rgba(0,114,178,0.1); outline: none; }
+  .tip { position: fixed; z-index: 50; max-width: 330px; background: #fff; border: 1px solid var(--border); border-radius: 9px;
+         box-shadow: 0 8px 28px rgba(0,0,0,0.12); padding: 0.65rem 0.85rem 0.75rem; font-size: 0.92rem; line-height: 1.45;
+         opacity: 0; transform: translateY(4px); transition: opacity 0.12s, transform 0.12s; pointer-events: none; }
+  .tip.show { opacity: 1; transform: none; }
+  .tip .tt { font-family: var(--mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--buyer-ink); margin-bottom: 0.25rem; }
+
+  /* ---------- stages ---------- */
+  .stage { padding: 1rem 1.3rem 1.2rem; }
+  .stage-head { display: flex; align-items: center; gap: 0.6rem 0.9rem; flex-wrap: wrap; }
+  .stage-num { font-family: var(--mono); display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem;
+               border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.78rem; font-weight: 600; }
+  .stage-title { font-size: 1.2rem; font-weight: 600; }
+  .stage-date { color: var(--text-muted); font-size: 0.95rem; }
+  .stage-note { font-size: 1rem; margin: 0.55rem 0 0.9rem; max-width: 64rem; }
+  .stage-note.below { margin: 0.9rem 0 0; }
+  #stToday .stage-head { margin-bottom: 0.85rem; }
+  .pill { font-family: var(--mono); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+          padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap; }
+  .pill.itm { background: #d9f0e6; color: #00684a; }
+  .pill.atm { background: #ece9e3; color: #4b5563; }
+  .pill.otm { background: #ece9e3; color: #4b5563; }
+
+  .trio { display: grid; grid-template-columns: minmax(0, 1fr) 210px minmax(0, 1fr); gap: 0 0.6rem; align-items: stretch; }
+  .cell { background: #fcfbf9; border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1rem 1rem; border-top: 4px solid var(--rc); }
+  .cell.buyer { --rc: var(--buyer); --ri: var(--buyer-ink); --rb: var(--buyer-bg); }
+  .cell.seller { --rc: var(--seller); --ri: var(--seller-ink); --rb: var(--seller-bg); }
+  .cell-head { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.55rem; }
+  .cell-role { font-family: var(--mono); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ri); }
+  .cell-sub { font-size: 0.88rem; color: var(--text-muted); }
+  .bigcf { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+  .bigcf .amt { font-size: 1.7rem; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: lining-nums tabular-nums; }
+  .bigcf .cap { color: var(--text-muted); font-size: 0.95rem; }
+  .pts { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+  .pts li { padding-left: 1.05rem; position: relative; font-size: 0.98rem; }
+  .pts li::before { content: ''; position: absolute; left: 0.1rem; top: 0.55em; width: 6px; height: 6px; border-radius: 50%; background: var(--rc); }
+  .hope { margin-top: 0.7rem; padding: 0.5rem 0.7rem; border-radius: 7px; background: var(--rb); font-size: 0.96rem; }
+  .hope b { color: var(--ri); }
+
+  /* ---------- flows between buyer and seller ---------- */
+  .lane { display: flex; flex-direction: column; justify-content: center; gap: 1.35rem; padding: 0.6rem 0; min-height: 8rem; }
+  .flow { color: var(--cash); }
+  .flow.share { color: var(--share); }
+  .flow.rightc { color: var(--rightc); }
+  .fl-label { text-align: center; color: var(--text); line-height: 1.25; }
+  .fl-label .v { font-size: 1.02rem; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; }
+  .fl-label .k { display: block; font-size: 0.82rem; color: var(--text-muted); }
+  .fl-line { position: relative; height: 3px; background: currentColor; margin: 0.45rem 13px 0; border-radius: 2px; }
+  .flow.rightc .fl-line { background: repeating-linear-gradient(90deg, currentColor 0 7px, transparent 7px 12px); }
+  .flow.r .fl-line::after, .flow.l .fl-line::after { content: ''; position: absolute; top: -6px; border-top: 7.5px solid transparent; border-bottom: 7.5px solid transparent; }
+  .flow.r .fl-line::after { right: -12px; border-left: 13px solid currentColor; }
+  .flow.l .fl-line::after { left: -12px; border-right: 13px solid currentColor; }
+  .tok { position: absolute; top: -5px; width: 13px; height: 13px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px #fff; opacity: 0; }
+  .flow.r.anim .tok { animation: goR 1.3s ease-in-out 0.1s 1 both; }
+  .flow.l.anim .tok { animation: goL 1.3s ease-in-out 0.1s 1 both; }
+  @keyframes goR { 0% { left: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: calc(100% - 13px); opacity: 0; } }
+  @keyframes goL { 0% { left: calc(100% - 13px); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 0; opacity: 0; } }
+  .nothing { text-align: center; color: var(--text-muted); font-size: 0.92rem; }
+  .nothing .x { display: block; height: 3px; margin: 0.5rem 13px; background: repeating-linear-gradient(90deg, #c9c4bb 0 6px, transparent 6px 11px); }
+  .zs { text-align: center; font-size: 0.86rem; color: var(--text-muted); }
+  .zs .num { color: var(--text); }
+  .lane-dirs { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; padding: 0 0.1rem; }
+  .lane-dirs .b { color: var(--buyer-ink); } .lane-dirs .s { color: var(--seller-ink); }
+
+  /* ---------- expiration controls ---------- */
+  .exp-bar { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem 1.5rem; flex-wrap: wrap; margin: 0.7rem 0 0.35rem; }
+  .readout { font-size: 1.15rem; }
+  .readout .v { font-size: 1.55rem; font-weight: 600; font-variant-numeric: lining-nums tabular-nums; margin-left: 0.25rem; }
+  .readout .v.q { color: #b3aea6; }
+  .readout .pill { margin-left: 0.7rem; vertical-align: 0.25em; }
+  .scen { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+  .scen .lab { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); margin-right: 0.2rem; }
+  .pline-wrap { position: relative; margin: 0.2rem -0.2rem 0; }
+  #pline { display: block; width: 100%; cursor: pointer; touch-action: pan-y; outline: none; user-select: none; -webkit-user-select: none; }
+  #pline:focus-visible { outline: 2px solid rgba(0,114,178,0.4); outline-offset: 2px; border-radius: 6px; }
+  #pline.dragging { cursor: grabbing; }
+  .hint { font-size: 0.88rem; color: var(--text-muted); font-style: italic; }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem 1.2rem; flex-wrap: wrap; margin: 0.6rem 0 0.2rem; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; font-size: 0.9rem; color: var(--text-muted); }
+  .lg { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+  .lg .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .lg .b { color: var(--buyer-ink); } .lg .s { color: var(--seller-ink); }
+  .lg-sep { width: 1px; height: 1.1rem; background: var(--border); }
+  .view { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .view .lab { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); }
+  .seg.sm button { font-size: 0.72rem; font-weight: 500; padding: 0.3rem 0.7rem; letter-spacing: 0; }
+  .cbox { position: absolute; top: 14px; display: none; pointer-events: none; background: rgba(255,255,255,0.94); border: 1px solid var(--border);
+          border-radius: 8px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); padding: 0.4rem 0.65rem 0.45rem; font-size: 0.86rem; line-height: 1.4; }
+  .cbox .h { font-weight: 600; margin-bottom: 0.15rem; }
+  .cbox table { border-collapse: collapse; font-variant-numeric: lining-nums tabular-nums; }
+  .cbox th { font-family: var(--mono); font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: right; padding: 0 0 0.1rem 0.9rem; }
+  .cbox td { text-align: right; padding: 0 0 0 0.9rem; white-space: nowrap; }
+  .cbox td:first-child { text-align: left; padding-left: 0; }
+  .cbox .b { color: var(--buyer-ink); } .cbox .s { color: var(--seller-ink); }
+  .cbox th .mk { vertical-align: -1px; margin-right: 0.3rem; }
+
+  /* ---------- outcome ---------- */
+  .verdict { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.6rem; }
+  .face { width: 64px; height: 64px; flex-shrink: 0; }
+  .mood { font-size: 1.25rem; font-weight: 600; line-height: 1.15; }
+  .mood-amt { font-size: 0.95rem; color: var(--text-muted); }
+  .decision { font-weight: 600; font-size: 1.02rem; margin-bottom: 0.2rem; }
+  .detail { font-size: 0.97rem; margin-bottom: 0.7rem; }
+  table.ledger { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  table.ledger td { padding: 0.22rem 0; border-top: 1px solid #efece7; }
+  table.ledger td:last-child { text-align: right; font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+  table.ledger tr.tot td { font-weight: 600; border-top: 1.5px solid #cfcac2; }
+  .pending .decision, .pending .detail, .pending table.ledger td:last-child { color: #b3aea6; }
+
+  /* ---------- narrow screens: buyer on top, seller below, arrows vertical ---------- */
+  @media (max-width: 760px) {
+    body { padding: 1.2rem 0.8rem 2rem; }
+    .trio { grid-template-columns: minmax(0, 1fr); }
+    .lane { flex-direction: row; justify-content: center; align-items: center; gap: 1.6rem; min-height: 0; padding: 0.4rem 0; }
+    .flow { display: flex; align-items: center; gap: 0.55rem; }
+    .flow .fl-line { width: 3px; height: 54px; margin: 13px 0; }
+    .flow.rightc .fl-line { background: repeating-linear-gradient(180deg, currentColor 0 7px, transparent 7px 12px); }
+    .flow.r .fl-line::after, .flow.l .fl-line::after { top: auto; left: -6px; right: auto; border: 0; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; }
+    .flow.r .fl-line::after { bottom: -12px; border-top: 13px solid currentColor; }
+    .flow.l .fl-line::after { top: -12px; border-bottom: 13px solid currentColor; }
+    .flow.l { flex-direction: row; }
+    .fl-label { text-align: left; }
+    .tok { left: -5px; top: 0; }
+    .flow.r.anim .tok { animation-name: goD; }
+    .flow.l.anim .tok { animation-name: goU; }
+    @keyframes goD { 0% { top: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: calc(100% - 13px); opacity: 0; } }
+    @keyframes goU { 0% { top: calc(100% - 13px); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 0; opacity: 0; } }
+    .lane-dirs { display: none; }
+    .nothing .x { width: 3px; height: 40px; margin: 0.3rem auto; background: repeating-linear-gradient(180deg, #c9c4bb 0 6px, transparent 6px 11px); }
+    .stage { padding: 0.9rem 0.9rem 1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flow.anim .tok { animation: none !important; } .tip { transition: none; } }
+  .foot { font-size: 0.84rem; color: var(--text-muted); margin-top: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>RSM 1231: Introduction to Calls and Puts</h1>
+  <p class="subtitle">Pick a call or a put. Read the contract (hover over any underlined term for its meaning), see who pays whom today, then jump to the expiration date and try different stock prices.</p>
+
+  <div class="panel toolbar">
+    <span class="section-label">Option</span>
+    <div class="seg" id="segType" role="group" aria-label="Option type"><button data-v="call" class="active">Call</button><button data-v="put">Put</button></div>
+    <button class="btn" id="btnNew" title="Draw a new strike price">New strike</button>
+    <div class="right"><button class="btn" id="btnGloss" aria-expanded="false" aria-controls="glossary">Glossary</button></div>
+  </div>
+
+  <div class="panel glossary" id="glossary" hidden>
+    <span class="section-label">Glossary</span>
+    <dl class="gl-grid" id="glList"></dl>
+  </div>
+
+  <section class="contract" id="contract" aria-label="Option contract"></section>
+
+  <section class="panel stage" id="stToday">
+    <div class="stage-head"><span class="stage-num">1</span><span class="stage-title">Today</span><span class="stage-date" id="todayDate"></span><span id="todayPill"></span></div>
+    <div class="trio">
+      <div class="cell buyer" id="todayBuyer"></div>
+      <div class="lane" id="todayLane"></div>
+      <div class="cell seller" id="todaySeller"></div>
+    </div>
+    <p class="stage-note below" id="todayNote"></p>
+  </section>
+
+  <section class="panel stage" id="stExp">
+    <div class="stage-head"><span class="stage-num">2</span><span class="stage-title">At expiration</span><span class="stage-date" id="expDate"></span></div>
+    <div class="exp-bar">
+      <div class="readout">GOOG closes at <span class="term" data-t="st" tabindex="0"><i>S</i><sub><i>T</i></sub></span> =<span class="v q" id="stVal">?</span><span id="expPill"></span></div>
+      <div class="scen" id="scen">
+        <span class="lab">Try</span>
+        <button class="btn" data-s="otm">Out of the money</button>
+        <button class="btn" data-s="atm">At the money</button>
+        <button class="btn" data-s="itm">In the money</button>
+        <button class="btn primary" data-s="rnd">Random price</button>
+      </div>
+    </div>
+    <div class="chart-head">
+      <div class="legend" id="legend"></div>
+      <div class="view"><span class="lab">Diagram</span>
+        <div class="seg sm" id="segView" role="group" aria-label="What the diagram shows">
+          <button data-v="cf">Cash flow</button><button data-v="profit">Profit</button><button data-v="both" class="active">Both</button><button data-v="off">Off</button>
+        </div></div>
+    </div>
+    <div class="pline-wrap"><svg id="pline" tabindex="0" role="slider" aria-label="Google stock price at expiration" aria-valuemin="180" aria-valuemax="350"></svg><div class="cbox" id="cbox"></div></div>
+    <p class="stage-note" id="expNote"></p>
+    <div class="trio">
+      <div class="cell buyer" id="expBuyer"></div>
+      <div class="lane" id="expLane"></div>
+      <div class="cell seller" id="expSeller"></div>
+    </div>
+  </section>
+
+  <p class="foot" id="foot"></p>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+/* ================= setup: change these to re-target the tool ================= */
+const CFG = {
+  company: 'Alphabet Inc. (Google)', short: 'Google', tick: 'GOOG',
+  S: 264,                                   // stock price today (close on Nov 20, 2026, as in the Class 11 slides)
+  sNote: 'close on Friday, November 20, 2026',
+  expLong: 'Friday, January 15, 2027', expShort: 'January 15', expCode: '270115',
+  days: 56,                                 // Nov 20, 2026 to Jan 15, 2027
+  R: 0.0411,                                // risk-free rate, annual compounding (4-week T-bill in the slides)
+  strikes: [240, 245, 250, 255, 260, 265, 270, 275, 280, 285, 290],
+  first: { type: 'call', X: 270 },
+  lineMin: 180, lineMax: 350,
+};
+
+/* ================= numbers ================= */
+const MINUS = '−';
+const r2 = v => Math.round((v + (v >= 0 ? 1e-9 : -1e-9)) * 100) / 100;
+const money = v => { v = r2(v); return (v < 0 ? MINUS : '') + '$' + Math.abs(v).toFixed(2); };
+const smoney = v => { v = r2(v); return (v > 0 ? '+' : v < 0 ? MINUS : '') + '$' + Math.abs(v).toFixed(2); };
+const n = v => { v = r2(v); const a = Math.abs(v); return (v < 0 ? MINUS : '') + (Number.isInteger(a) ? String(a) : a.toFixed(2)); };
+function ncdf(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x)), d = 0.3989422804014327 * Math.exp(-x * x / 2);
+  const p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  return x > 0 ? 1 - p : p;
+}
+// volatility skew fitted to the slides' Google quotes (about 50% at X = 250, 45% at X = 270)
+const vol = X => Math.min(0.6, Math.max(0.38, 0.46 - 0.6 * Math.log(X / CFG.S)));
+function bsm(type, X) {
+  const S = CFG.S, T = CFG.days / 365, sig = vol(X), r = Math.log(1 + CFG.R), sT = sig * Math.sqrt(T);
+  const d1 = (Math.log(S / X) + (r + sig * sig / 2) * T) / sT, d2 = d1 - sT, df = Math.pow(1 + CFG.R, -T);
+  return type === 'call' ? S * ncdf(d1) - X * df * ncdf(d2) : X * df * ncdf(-d2) - S * ncdf(-d1);
+}
+
+/* ================= state ================= */
+const st = { type: CFG.first.type, X: CFG.first.X, price: 0, be: 0, ST: null };
+function setContract(type, X) {
+  st.type = type; st.X = X; st.price = r2(bsm(type, X));
+  st.be = r2(type === 'call' ? X + st.price : X - st.price);
+}
+
+/* ================= words ================= */
+const V = { S: '<i>S</i>', X: '<i>X</i>', ST: '<i>S</i><sub><i>T</i></sub>', C: '<i>C</i>', P: '<i>P</i>', T: '<i>T</i>' };
+const T = (k, txt) => `<span class="term" data-t="${k}" tabindex="0">${txt}</span>`;
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const isCall = () => st.type === 'call';
+const PV = () => isCall() ? V.C : V.P;
+
+function defs() {
+  const c = isCall(), O = st.type, X = money(st.X), here = `this ${O}`;
+  return {
+    option: ['Option', `A contract that gives its owner the right, but not the obligation, to buy or sell an asset at a fixed price on a set date. It is a derivative: its value derives from the price of the underlying asset.`],
+    call: ['Call option', `Gives its owner the right, but not the obligation, to <b>buy</b> the underlying at the strike price ${V.X}. The buyer of a call is betting on the stock going up.`],
+    put: ['Put option', `Gives its owner the right, but not the obligation, to <b>sell</b> the underlying at the strike price ${V.X}. The buyer of a put is betting on the stock going down.`],
+    underlying: ['Underlying asset', `What the option lets you buy (with calls) or sell (with puts): here, one share of ${CFG.company}, ticker ${CFG.tick}. Its price today is ${V.S}; its price on the expiration date is ${V.ST}.`],
+    strike: ['Strike (or exercise) price, X', `The fixed price at which the option's owner can buy the underlying (with a call) or sell it (with a put). For ${here}, ${V.X} = ${X}. Some textbooks call it <i>K</i>.`],
+    expiration: ['Expiration date', `The last day the option can be used: here, ${CFG.expLong}. After that, the contract is over. ${V.T} is the time until then.`],
+    exercise: ['Exercise', `To use the option: to buy the underlying at the strike price (with a call) or to sell it at the strike price (with a put). Only the buyer decides whether to exercise; the seller must go along.`],
+    european: ['European vs. American', `A European option can be exercised only on the expiration date. An American option can be exercised on any day until then. Most traded stock options, Google's included, are American; we study European options.`],
+    price: ['Option price (C for calls, P for puts)', `What the buyer pays the seller today to get the option. Also called the premium. It is paid up front and never returned: the seller keeps it whether or not the option is later exercised. ${cap(here)} costs ${PV()} = ${money(st.price)} per share.`],
+    buyer: ['Buyer (also called holder, long position)', `Pays the option price today and gets the right to buy (call) or sell (put) at the strike price. Decides at expiration whether to exercise. The most the buyer can lose is the price paid.`],
+    seller: ['Seller (also called writer, short position)', `Receives the option price today and takes on the obligation to sell (call) or buy (put) the underlying at the strike price if the buyer exercises. Has no say in whether that happens.`],
+    right: ['Right, not obligation', `The buyer exercises only when doing so makes money, and otherwise walks away. That one-sided choice is what the buyer pays for.`],
+    obligation: ['Obligation', `If the buyer exercises, the seller must sell the underlying at the strike price (call) or buy it at the strike price (put). The option price received today is the seller's compensation for taking on this obligation.`],
+    itm: ['In the money', `Exercising now would make money. A call is in the money when ${V.S} &gt; ${V.X}; a put, when ${V.S} &lt; ${V.X}.`],
+    atm: ['At the money', `Exercising now would just break even: ${V.S} = ${V.X}. Traders also use the term for the strike closest to the current stock price.`],
+    otm: ['Out of the money', `Exercising now would lose money, so you would not exercise. A call is out of the money when ${V.S} &lt; ${V.X}; a put, when ${V.S} &gt; ${V.X}.`],
+    payoff: ['Value at expiration', `What the option is worth on the expiration date: max(0, ${V.ST} − ${V.X}) for a call, max(0, ${V.X} − ${V.ST}) for a put. The buyer receives it; the seller pays it.`],
+    breakeven: ['Break-even price', `The stock price at expiration at which the buyer's profit is zero, because the value at expiration just covers the price paid: ${V.X} + ${V.C} for a call, ${V.X} − ${V.P} for a put. For ${here}: ${n(st.X)} ${c ? '+' : '−'} ${n(st.price)} = ${money(st.be)}.`],
+    profit: ['Profit or loss', `Cash flow at expiration plus cash flow today. We ignore the time value of money over these few weeks.`],
+    assigned: ['Assignment', `When a buyer exercises, a seller is assigned: required to hand over the shares and receive the strike price (call), or to take the shares and pay the strike price (put).`],
+    contract: ['Contract size', `Exchange-traded stock options cover 100 shares per contract, so real dollar amounts are 100 times larger. Here we work per share.`],
+    symbol: ['Option symbol', `How quote screens name an option: the underlying's ticker, the expiration date as YYMMDD, C for a call or P for a put, and the strike × 1,000 in eight digits. For ${here}: ${CFG.tick} · ${CFG.expCode} · ${c ? 'C' : 'P'} · ${String(st.X * 1000).padStart(8, '0')} (${X}).`],
+    stoday: ['Stock price today, S', `${CFG.short}'s ${CFG.sNote}.`],
+    st: ['Stock price at expiration, S<sub>T</sub>', `${CFG.short}'s price on the expiration date. Nobody knows it today. Drag along the line or pick a scenario to try different values.`],
+    zerosum: ['Zero-sum', `Every dollar the buyer makes, the seller loses, and the other way around. The option moves money between the two sides; it does not create any.`],
+  };
+}
+const GLOSS_ORDER = ['option', 'call', 'put', 'underlying', 'strike', 'expiration', 'exercise', 'european', 'price', 'buyer', 'seller',
+                     'right', 'itm', 'atm', 'otm', 'payoff', 'breakeven', 'profit', 'contract', 'symbol'];
+
+/* ================= rendering: contract and today ================= */
+function render() {
+  const c = isCall(), O = st.type, X = money(st.X), p = money(st.price), S = money(CFG.S), Tk = CFG.tick;
+  $$('#segType button').forEach(b => b.classList.toggle('active', b.dataset.v === st.type));
+  const sym = `${Tk}${CFG.expCode}${c ? 'C' : 'P'}${String(st.X * 1000).padStart(8, '0')}`;
+  const verb = c ? 'buy' : 'sell';
+  $('#contract').innerHTML = `
+    <div class="ct-top">
+      <div><div class="ct-kicker">Option contract</div>
+        <h2 class="ct-title">European ${O} option on ${CFG.short} stock</h2></div>
+      <span class="ct-sym">${T('symbol', sym)}</span>
+    </div>
+    <dl class="ct-grid">
+      <dt>Type</dt><dd>${T(O, c ? 'Call' : 'Put')}: the right to <b>${verb}</b></dd>
+      <dt>${T('underlying', 'Underlying asset')}</dt><dd>${T('contract', 'One share')} of ${CFG.company}, ticker ${Tk}</dd>
+      <dt>${T('strike', 'Strike price')}, <span style="text-transform:none">${V.X}</span></dt><dd><b class="num">${X}</b></dd>
+      <dt>${T('expiration', 'Expiration date')}</dt><dd><b>${CFG.expLong}</b></dd>
+      <dt>${T('exercise', 'Exercise')}</dt><dd>${T('european', 'European')}: only on the expiration date</dd>
+      <dt>${T('price', 'Price')}, <span style="text-transform:none">${PV()}</span></dt><dd><b class="num">${p}</b> per share, paid today by the buyer to the seller</dd>
+    </dl>
+    <p class="ct-text">The ${T('buyer', 'buyer')} of this ${O} has the ${T('right', 'right, but not the obligation')}, to <b>${verb}</b> one share of ${Tk} at the
+      ${T('strike', 'strike price')} of <b class="num">${X}</b> on the ${T('expiration', 'expiration date')}. If the buyer ${T('exercise', 'exercises')} the option, the
+      ${T('seller', 'seller')} has the ${T('obligation', 'obligation')} to <b>${c ? 'sell' : 'buy'}</b> that share at <b class="num">${X}</b>.</p>
+    <div class="ct-sign">
+      <div class="sig"><span class="dot" style="background:var(--buyer)"></span>Buyer (holder): long ${O}, pays ${p}</div>
+      <div class="sig"><span class="dot" style="background:var(--seller)"></span>Seller (writer): short ${O}, receives ${p}</div>
+    </div>`;
+
+  // today
+  $('#todayDate').innerHTML = `${T('stoday', `${Tk} today: ${V.S} = <span class="num">${S}</span>`)}`;
+  const mToday = CFG.S === st.X ? 'atm' : ((CFG.S > st.X) === c ? 'itm' : 'otm');
+  const gain = mToday === 'itm' ? 'a gain' : mToday === 'otm' ? 'a loss' : 'no gain';
+  const act = c ? `paying ${X} for a share worth ${S}` : `selling for ${X} a share worth ${S}`;
+  const mWord = { itm: 'in the money', atm: 'at the money', otm: 'out of the money' }[mToday];
+  $('#todayNote').innerHTML = `If this ${O} could be exercised today, that would mean ${act}: ${gain}. So today the ${O} is ${T(mToday, mWord)}.`;
+  $('#todayPill').innerHTML = pill(mToday);
+  const roleHead = (who) => `<div class="cell-head"><span class="cell-role">${who === 'b' ? 'Buyer' : 'Seller'}</span><span class="cell-sub">${who === 'b' ? `holder · long ${O}` : `writer · short ${O}`}</span></div>`;
+  $('#todayBuyer').innerHTML = roleHead('b') + `
+    <div class="bigcf"><span class="amt">${smoney(-st.price)}</span><span class="cap">pays the ${T('price', 'price')}</span></div>
+    <ul class="pts">
+      <li>Gets the ${T('right', 'right, but not the obligation')}, to ${verb} one ${Tk} share at <span class="num">${X}</span> on ${CFG.expShort}.</li>
+      <li>Will decide on ${CFG.expShort} whether to ${T('exercise', 'exercise')}.</li>
+    </ul>
+    <div class="hope"><b>Hopes</b> ${Tk} ${c ? 'rises' : 'falls'}: to come out ahead, it must end ${c ? 'above' : 'below'} the
+      ${T('breakeven', 'break-even')} price of <span class="num">${money(st.be)}</span> (${c ? `${V.X} + ${V.C}` : `${V.X} − ${V.P}`}).</div>`;
+  $('#todaySeller').innerHTML = roleHead('s') + `
+    <div class="bigcf"><span class="amt">${smoney(st.price)}</span><span class="cap">receives the ${T('price', 'price')}</span></div>
+    <ul class="pts">
+      <li>Takes on the ${T('obligation', 'obligation')} to ${c ? 'sell' : 'buy'} one ${Tk} share at <span class="num">${X}</span> if the buyer exercises.</li>
+      <li>Has no say in whether the option is exercised.</li>
+    </ul>
+    <div class="hope"><b>Hopes</b> ${Tk} ${c ? 'does not rise' : 'does not fall'}: if it ends at or ${c ? 'below' : 'above'} <span class="num">${X}</span>,
+      the ${O} is never exercised and the seller keeps the full <span class="num">${money(st.price)}</span>.</div>`;
+  $('#todayLane').innerHTML = `
+    <div class="lane-dirs"><span class="b">Buyer</span><span class="s">Seller</span></div>
+    ${flowHTML('r', 'cash', money(st.price), 'the price, in cash')}
+    ${flowHTML('l', 'rightc', `the ${O}`, `a right to ${verb} at ${X}`)}`;
+  animateLane('#todayLane');
+
+  $('#expDate').textContent = CFG.expLong;
+  $('#pline').setAttribute('aria-valuemin', CFG.lineMin); $('#pline').setAttribute('aria-valuemax', CFG.lineMax);
+  $('#foot').innerHTML = `All amounts are per share. ${CFG.short} stock price today: ${CFG.sNote}. Option prices are illustrative, set to match the levels of ${CFG.short}'s
+    option quotes in November 2026.`;
+  lastLaneKey = null;
+  renderExpiry(true);
+  renderGlossary();
+}
+const pill = m => `<span class="pill ${m}">${m === 'itm' ? 'In' : m === 'atm' ? 'At' : 'Out of'} the money</span>`;
+function flowHTML(dir, kind, v, k) {
+  return `<div class="flow ${dir} ${kind}"><div class="fl-label"><span class="v">${v}</span><span class="k">${k}</span></div><div class="fl-line"><i class="tok"></i></div></div>`;
+}
+function animateLane(sel) {
+  $$(`${sel} .flow`).forEach((f, i) => { f.classList.remove('anim'); void f.offsetWidth; setTimeout(() => f.classList.add('anim'), i * 450); });
+}
+
+/* ================= rendering: expiration ================= */
+let lastLaneKey = null;
+function outcome() {
+  const c = isCall(), s = st.ST, X = st.X;
+  const ex = c ? s > X : s < X, atm = s === X;
+  const pay = r2(c ? Math.max(0, s - X) : Math.max(0, X - s));
+  return { c, s, ex, atm, pay, bp: r2(pay - st.price), sp: r2(st.price - pay), m: atm ? 'atm' : ex ? 'itm' : 'otm' };
+}
+function moodWord(profit) {
+  if (Math.abs(profit) < 0.005) return 'Breaks even';
+  const big = Math.abs(profit) >= 0.4 * st.price;
+  return profit > 0 ? (big ? 'Happy' : 'Somewhat happy') : (big ? 'Unhappy' : 'Somewhat unhappy');
+}
+function renderExpiry(force) {
+  const O = st.type, X = money(st.X), Tk = CFG.tick;
+  const roleHead = (who) => `<div class="cell-head"><span class="cell-role">${who === 'b' ? 'Buyer' : 'Seller'}</span><span class="cell-sub">${who === 'b' ? `long ${O}` : `short ${O}`}</span></div>`;
+  const vEl = $('#stVal');
+  if (st.ST == null) {
+    vEl.textContent = '?'; vEl.classList.add('q'); $('#expPill').innerHTML = '';
+    $('#expNote').innerHTML = `Where will ${Tk} be on ${CFG.expShort}? Nobody knows today. Drag along the price line, or pick a scenario above.`;
+    const pend = who => roleHead(who) + `
+      <div class="verdict">${faceSVG(who)}<div><div class="mood" style="color:#9ca3af">Waiting…</div><div class="mood-amt">for ${CFG.expShort}</div></div></div>
+      <div class="decision">${who === 'b' ? 'Exercise or not?' : 'Will the buyer exercise?'}</div>
+      <p class="detail">Depends on where ${Tk} ends up.</p>
+      <table class="ledger"><tr><td>Today</td><td>${smoney(who === 'b' ? -st.price : st.price)}</td></tr><tr><td>At expiration</td><td>?</td></tr><tr class="tot"><td>${T('profit', 'Profit or loss')}</td><td>?</td></tr></table>`;
+    $('#expBuyer').innerHTML = pend('b'); $('#expSeller').innerHTML = pend('s');
+    $('#expBuyer').classList.add('pending'); $('#expSeller').classList.add('pending');
+    $('#expLane').innerHTML = `<div class="nothing">Pick a price<br>for ${Tk} at expiration</div>`;
+    faces.b.target = 0; faces.s.target = 0; faces.b.cur = 0; faces.s.cur = 0; paintFace('b'); paintFace('s');
+    lastLaneKey = null; drawLine(); return;
+  }
+  const o = outcome(), c = o.c, sS = money(o.s), pay = money(o.pay);
+  vEl.textContent = sS; vEl.classList.remove('q'); $('#expPill').innerHTML = pill(o.m);
+  $('#pline').setAttribute('aria-valuenow', o.s); $('#pline').setAttribute('aria-valuetext', sS);
+  $('#expBuyer').classList.remove('pending'); $('#expSeller').classList.remove('pending');
+
+  // the note under the price line
+  const rel = o.s > st.X ? 'above' : o.s < st.X ? 'below' : 'exactly at';
+  const mWord = { itm: 'in the money', atm: 'at the money', otm: 'out of the money' }[o.m];
+  let note = `On ${CFG.expShort}, ${Tk} closes at ${V.ST} = <b class="num">${sS}</b>, ${rel} the <span class="num">${X}</span> strike, so the ${O} finishes
+    ${T(o.m, mWord)}. Its ${T('payoff', 'value at expiration')} is
+    ${c ? `max(0, ${n(o.s)} − ${n(st.X)})` : `max(0, ${n(st.X)} − ${n(o.s)})`} = <b class="num">${pay}</b>.`;
+  if (o.ex && o.bp < 0) note += ` That is short of the ${T('breakeven', 'break-even')} price of <span class="num">${money(st.be)}</span>: the buyer exercises, yet still loses money overall.`;
+  $('#expNote').innerHTML = note;
+
+  // buyer
+  let bDec, bDet, sDec, sDet;
+  if (o.ex) {
+    bDec = `${T('exercise', 'Exercises')} the ${O}`;
+    bDet = c ? `Pays the <span class="num">${X}</span> strike price and receives one share worth <span class="num">${sS}</span>: a gain of <span class="num">${pay}</span>.`
+             : `Hands over one share worth <span class="num">${sS}</span> and receives the <span class="num">${X}</span> strike price: a gain of <span class="num">${pay}</span>.`;
+    sDec = c ? 'Must sell at the strike price' : 'Must buy at the strike price';
+    sDet = c ? `Is ${T('assigned', 'assigned')}: hands over a share worth <span class="num">${sS}</span> and receives only <span class="num">${X}</span>: a loss of <span class="num">${pay}</span>.`
+             : `Is ${T('assigned', 'assigned')}: pays <span class="num">${X}</span> for a share worth only <span class="num">${sS}</span>: a loss of <span class="num">${pay}</span>.`;
+  } else if (o.atm) {
+    bDec = `Gains nothing by exercising`;
+    bDet = c ? `Paying <span class="num">${X}</span> for a share worth exactly <span class="num">${X}</span> gains nothing. The ${O} expires worthless.`
+             : `Selling for <span class="num">${X}</span> a share worth exactly <span class="num">${X}</span> gains nothing. The ${O} expires worthless.`;
+    sDec = 'Owes nothing'; sDet = `Whether or not the buyer exercises, the trade at <span class="num">${X}</span> is at the market price. The seller's obligation ends.`;
+  } else {
+    bDec = `Lets the ${O} expire`;
+    bDet = c ? `Why pay <span class="num">${X}</span> for a share that costs only <span class="num">${sS}</span> in the market? The ${O} expires worthless.`
+             : `Why sell for <span class="num">${X}</span> a share that fetches <span class="num">${sS}</span> in the market? The ${O} expires worthless.`;
+    sDec = 'Owes nothing'; sDet = `The buyer does not exercise, so nothing changes hands. The seller's obligation ends.`;
+  }
+  const amt = (p, who) => {
+    if (Math.abs(p) < 0.005) return 'no profit, no loss';
+    if (who === 'b') return p > 0 ? `profit of <span class="num">${money(p)}</span>` : (o.pay > 0 ? `still loses <span class="num">${money(-p)}</span>` : `loses the full <span class="num">${money(-p)}</span> paid`);
+    return p > 0 ? (o.pay > 0 ? `keeps <span class="num">${money(p)}</span> of the price` : `keeps the full <span class="num">${money(p)}</span>`) : `loss of <span class="num">${money(-p)}</span>`;
+  };
+  const cell = (who, dec, det, p, cfExp) => roleHead(who) + `
+    <div class="verdict">${faceSVG(who)}<div><div class="mood">${moodWord(p)}</div><div class="mood-amt">${amt(p, who)}</div></div></div>
+    <div class="decision">${dec}</div><p class="detail">${det}</p>
+    <table class="ledger">
+      <tr><td>Today</td><td>${smoney(who === 'b' ? -st.price : st.price)}</td></tr>
+      <tr><td>At expiration</td><td>${smoney(cfExp)}</td></tr>
+      <tr class="tot"><td>${T('profit', 'Profit or loss')}</td><td>${smoney(p)}</td></tr>
+    </table>`;
+  $('#expBuyer').innerHTML = cell('b', bDec, bDet, o.bp, o.pay);
+  $('#expSeller').innerHTML = cell('s', sDec, sDet, o.sp, -o.pay);
+  const scale = 0.6 * st.price;
+  faces.b.target = Math.tanh(o.bp / scale); faces.s.target = Math.tanh(o.sp / scale);
+  if (force) { faces.b.cur = faces.b.target; faces.s.cur = faces.s.target; }
+  paintFace('b'); paintFace('s'); kickFaces();
+
+  // what changes hands
+  const key = `${st.type}|${st.X}|${o.ex}`;
+  const zs = `<div class="zs">${T('zerosum', 'Zero-sum')}: <span class="num">${smoney(o.bp)}</span> and <span class="num">${smoney(o.sp)}</span></div>`;
+  let lane;
+  if (o.ex) {
+    const share = (dir) => flowHTML(dir, 'share', `1 share`, `worth <span class="num">${sS}</span>`);
+    const cash = (dir) => flowHTML(dir, 'cash', X, 'the strike price, in cash');
+    lane = `<div class="lane-dirs"><span class="b">Buyer</span><span class="s">Seller</span></div>` + (c ? cash('r') + share('l') : share('r') + cash('l')) + zs;
+  } else {
+    lane = `<div class="nothing">Nothing changes hands<span class="x"></span>the ${O} expires worthless</div>` + zs;
+  }
+  if (key !== lastLaneKey || force) { $('#expLane').innerHTML = lane; if (o.ex) animateLane('#expLane'); lastLaneKey = key; }
+  else { // same arrows: update the numbers without replaying the animation
+    const tmp = document.createElement('div'); tmp.innerHTML = lane;
+    $$('.fl-label', tmp).forEach((l, i) => { const t = $$('#expLane .fl-label')[i]; if (t) t.innerHTML = l.innerHTML; });
+    const z = $('#expLane .zs'); if (z) z.innerHTML = $('.zs', tmp).innerHTML;
+  }
+  drawLine();
+}
+
+/* ================= faces ================= */
+const faces = { b: { cur: 0, target: 0 }, s: { cur: 0, target: 0 } };
+function faceSVG(who) {
+  const col = who === 'b' ? 'var(--buyer)' : 'var(--seller)', bg = who === 'b' ? 'var(--buyer-bg)' : 'var(--seller-bg)';
+  return `<svg class="face" viewBox="0 0 64 64" aria-hidden="true" data-face="${who}">
+    <circle cx="32" cy="32" r="29" fill="${bg}" stroke="${col}" stroke-width="3"/>
+    <path class="brow" fill="none" stroke="#1a1a1a" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="23" cy="27" r="3.3" fill="#1a1a1a"/><circle cx="41" cy="27" r="3.3" fill="#1a1a1a"/>
+    <path class="mouth" fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+    <circle class="cheek" cx="17" cy="38" r="4" fill="#f4a3a3" opacity="0"/><circle class="cheek" cx="47" cy="38" r="4" fill="#f4a3a3" opacity="0"/>
+  </svg>`;
+}
+function paintFace(who) {
+  const svg = $(`[data-face="${who}"]`); if (!svg) return;
+  const m = faces[who].cur, curve = 11 * m, sad = Math.max(0, -m) * 4.5;
+  const yM = 43 - 2.5 * m;
+  $('.mouth', svg).setAttribute('d', `M21 ${yM.toFixed(2)} Q32 ${(yM + curve).toFixed(2)} 43 ${yM.toFixed(2)}`);
+  $('.brow', svg).setAttribute('d', `M17 ${(18.5 + sad * 0.2).toFixed(2)} L27 ${(18.5 - sad).toFixed(2)} M37 ${(18.5 - sad).toFixed(2)} L47 ${(18.5 + sad * 0.2).toFixed(2)}`);
+  $$('.cheek', svg).forEach(c => c.setAttribute('opacity', Math.max(0, m - 0.35).toFixed(2)));
+}
+let faceRaf = null;
+function kickFaces() {
+  if (faceRaf) return;
+  const step = () => {
+    let moving = false;
+    ['b', 's'].forEach(w => { const f = faces[w], d = f.target - f.cur; if (Math.abs(d) > 0.002) { f.cur += d * 0.16; moving = true; } else f.cur = f.target; paintFace(w); });
+    faceRaf = moving ? requestAnimationFrame(step) : null;
+  };
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) { ['b', 's'].forEach(w => { faces[w].cur = faces[w].target; paintFace(w); }); return; }
+  faceRaf = requestAnimationFrame(step);
+}
+
+/* ================= the diagram and the price line, on one shared horizontal axis ================= */
+const meas = document.createElement('canvas').getContext('2d');
+const tw = (txt, font) => { meas.font = font; return meas.measureText(txt).width; };
+const VIEW = { mode: 'both' };                 // 'cf' | 'profit' | 'both' | 'off'
+function geo() {
+  const W = $('#pline').parentElement.clientWidth, narrow = W < 560, on = VIEW.mode !== 'off';
+  const L = on ? (narrow ? 44 : 60) : 14, R = 14;
+  const px = v => L + (v - CFG.lineMin) / (CFG.lineMax - CFG.lineMin) * (W - L - R);
+  const inv = x => CFG.lineMin + (x - L) / (W - L - R) * (CFG.lineMax - CFG.lineMin);
+  return { W, L, R, px, inv, narrow, on };
+}
+const niceStep = (span, maxN) => { const mag = Math.pow(10, Math.floor(Math.log10(span / maxN)));
+  return [1, 2, 2.5, 5, 10].map(k => k * mag).find(x => span / x <= maxN) || 10 * mag; };
+function curves() {
+  const c = isCall(), X = st.X, p = st.price, pay = s => c ? Math.max(0, s - X) : Math.max(0, X - s);
+  return { pay, bcf: s => pay(s), bpl: s => pay(s) - p, scf: s => -pay(s), spl: s => p - pay(s) };
+}
+// the dot drawn on each line at S_T: hollow for cash flow at expiration, filled for profit or loss
+const mark = (cx, cy, hollow) => hollow ? `<circle cx="${cx}" cy="${cy}" r="4" fill="#fff" stroke="#4b5563" stroke-width="2"/>`
+                                        : `<circle cx="${cx}" cy="${cy}" r="4.5" fill="#4b5563" stroke="#fff" stroke-width="1.5"/>`;
+const markIcon = hollow => `<svg class="mk" width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">${mark(5.5, 5.5, hollow)}</svg>`;
+function renderLegend() {
+  const m = VIEW.mode, sw = dash => `<svg width="34" height="12" aria-hidden="true"><line x1="1" y1="6" x2="33" y2="6" stroke="#4b5563" stroke-width="${dash ? 2.5 : 3}" ${dash ? 'stroke-dasharray="5 3.5"' : ''}/>${mark(17, 6, dash)}</svg>`;
+  if (m === 'off') { $('#legend').innerHTML = `<span class="hint">Diagram hidden</span>`; return; }
+  let h = `<span class="lg"><span class="dot" style="background:var(--buyer)"></span><span class="b">Buyer</span></span>
+           <span class="lg"><span class="dot" style="background:var(--seller)"></span><span class="s">Seller</span></span><span class="lg-sep"></span>`;
+  if (m !== 'profit') h += `<span class="lg">${sw(true)}Cash flow at expiration</span>`;
+  if (m !== 'cf') h += `<span class="lg">${sw(false)}Profit or loss (includes the option price)</span>`;
+  $('#legend').innerHTML = h;
+}
+function drawLine() {
+  const svg = $('#pline'), { W, L, R, px, narrow, on } = geo(), Rr = W - R;
+  const c = isCall(), xX = px(st.X), xB = px(st.be), f = curves();
+  const showCF = VIEW.mode === 'cf' || VIEW.mode === 'both', showPL = VIEW.mode === 'profit' || VIEW.mode === 'both';
+  const CH = on ? Math.round(Math.max(180, Math.min(290, W * 0.27))) : 0;
+  const cy0 = 10, cy1 = cy0 + CH, top = on ? cy1 + 12 : 0;
+  const b1 = { y: top + 22, h: 28 }, b2 = { y: top + 72, h: 28 }, ay = top + 110, H = ay + 40;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('height', H);
+  const lab = '13px "Source Serif 4", Georgia, serif', tag = '600 11.5px "IBM Plex Mono", monospace';
+  const monoT = (x, y, txt, anchor = 'middle', fill = '#6b7280', extra = '') =>
+    `<text x="${x}" y="${y}" text-anchor="${anchor}" font-family="IBM Plex Mono, monospace" font-size="11" fill="${fill}" ${extra}>${txt}</text>`;
+  let g = '', tags = '', dots = '';
+  // readout, parked in the chart corner the lines never reach (top left for a call, top right for a put)
+  const box = $('#cbox'); let boxR = null;
+  if (on && !narrow && st.ST != null) {
+    const s = st.ST, cols = [showCF && ['Cash flow', f.bcf(s), f.scf(s)], showPL && ['Profit', f.bpl(s), f.spl(s)]].filter(Boolean);
+    box.innerHTML = `<div class="h"><i>S</i><sub><i>T</i></sub> = ${money(s)}</div><table>
+      <tr><th></th>${cols.map(k => `<th>${markIcon(k[0] === 'Cash flow')}${k[0]}</th>`).join('')}</tr>
+      <tr><td class="b">Buyer</td>${cols.map(k => `<td>${smoney(k[1])}</td>`).join('')}</tr>
+      <tr><td class="s">Seller</td>${cols.map(k => `<td>${smoney(k[2])}</td>`).join('')}</tr></table>`;
+    box.style.display = 'block'; box.style.top = (cy0 + 6) + 'px';
+    if (c) { box.style.left = (L + 8) + 'px'; box.style.right = 'auto'; } else { box.style.right = (R + 8) + 'px'; box.style.left = 'auto'; }
+    boxR = { x: c ? L + 8 : W - R - 8 - box.offsetWidth, y: cy0 + 6, w: box.offsetWidth, h: box.offsetHeight };
+  } else box.style.display = 'none';
+  const hits = (r) => boxR && r.x < boxR.x + boxR.w + 6 && r.x + r.w > boxR.x - 6 && r.y < boxR.y + boxR.h + 4 && r.y + r.h > boxR.y - 4;
+
+  // ---------- the diagram
+  let py = null;
+  if (on) {
+    let ymax = Math.max(f.pay(CFG.lineMin), f.pay(CFG.lineMax), st.price) * 1.06;
+    const step = niceStep(2 * ymax, narrow ? 5 : 8); ymax = Math.ceil(ymax / step) * step;
+    py = v => cy0 + (ymax - v) / (2 * ymax) * CH;
+    for (let v = Math.ceil(CFG.lineMin / 20) * 20; v <= CFG.lineMax; v += 20)
+      g += `<line x1="${px(v)}" x2="${px(v)}" y1="${cy0}" y2="${cy1}" stroke="#f1eee9"/>`;
+    for (let v = -ymax; v <= ymax + 1e-9; v += step) {
+      const y = py(v), zero = Math.abs(v) < 1e-9;
+      g += `<line x1="${L}" x2="${Rr}" y1="${y}" y2="${y}" stroke="${zero ? '#9a958d' : '#efece7'}" stroke-width="${zero ? 1.2 : 1}"/>`;
+      g += monoT(L - 7, y + 3.5, (v < -1e-9 ? MINUS : '') + Math.abs(Math.round(v * 100) / 100), 'end');
+    }
+    g += `<text transform="translate(12 ${(cy0 + cy1) / 2}) rotate(-90)" text-anchor="middle" font-family="Source Serif 4, Georgia, serif" font-size="12.5" fill="#4b5563">Dollars per share</text>`;
+    // guides at the strike (the kink) and the break-even (where the profit lines cross zero)
+    g += `<line x1="${xX}" x2="${xX}" y1="${cy0}" y2="${cy1}" stroke="#bdb7ad" stroke-dasharray="4 4"/>`;
+    if (showPL) g += `<line x1="${xB}" x2="${xB}" y1="${cy0}" y2="${cy1}" stroke="#d6d1c9" stroke-dasharray="2 3"/>`;
+    g += `<clipPath id="cclip"><rect x="${L}" y="${cy0 - 2}" width="${Rr - L}" height="${CH + 4}"/></clipPath><g clip-path="url(#cclip)">`;
+    const path = fn => [CFG.lineMin, st.X, CFG.lineMax].map((v, i) => `${i ? 'L' : 'M'}${px(v).toFixed(1)} ${py(fn(v)).toFixed(1)}`).join(' ');
+    // where buyer and seller cash flows are both zero the two dashed lines alternate colors instead of hiding each other
+    if (showCF) {
+      g += `<path d="${path(f.scf)}" fill="none" stroke="#E69F00" stroke-width="2.6" stroke-dasharray="8 8" stroke-dashoffset="8"/>`;
+      g += `<path d="${path(f.bcf)}" fill="none" stroke="#0072B2" stroke-width="2.6" stroke-dasharray="8 8"/>`;
+    }
+    if (showPL) {
+      g += `<path d="${path(f.spl)}" fill="none" stroke="#E69F00" stroke-width="3.2" stroke-linejoin="round"/>`;
+      g += `<path d="${path(f.bpl)}" fill="none" stroke="#0072B2" stroke-width="3.2" stroke-linejoin="round"/>`;
+    }
+    // with both shown: the solid line is the dashed line shifted by the price
+    if (VIEW.mode === 'both') {
+      const gap = py(0) - py(st.price);
+      if (gap >= 13) {
+        const xb = c ? (L + xX) / 2 : (xX + Rr) / 2;                      // middle of the out-of-the-money stretch, where both lines are flat
+        const arrow = (x, y1, y2, col) => { const d = y2 > y1 ? 1 : -1;
+          return `<line x1="${x}" x2="${x}" y1="${y1}" y2="${y2 - d * 6}" stroke="${col}" stroke-width="1.8"/><path d="M${x} ${y2} l-4.5 ${-d * 7} h9 z" fill="${col}"/>`; };
+        g += arrow(xb - 5, py(0), py(-st.price), '#0072B2') + arrow(xb + 5, py(0), py(st.price), '#E69F00');
+        const fnt = '12px "Source Serif 4", Georgia, serif';
+        const tb = `price paid ${smoney(-st.price)}`, ts = `price received ${smoney(st.price)}`, wmax = Math.max(tw(tb, fnt), tw(ts, fnt));
+        const yb = py(-st.price) + 15, ys = py(st.price) - 7;
+        const lo = c ? L : xX, hi = c ? xX : Rr;                                 // keep the labels inside that stretch
+        for (const side of [1, -1]) {                                             // right of the arrows first, then left
+          const x0 = side > 0 ? xb + 13 : xb - 13 - wmax;
+          if (x0 < lo + 4 || x0 + wmax > hi - 6) continue;
+          if (hits({ x: x0, y: ys - 11, w: wmax, h: 14 }) || hits({ x: x0, y: yb - 11, w: wmax, h: 14 })) continue;
+          const anc = side > 0 ? 'start' : 'end', tx = side > 0 ? xb + 13 : xb - 13;
+          g += `<text x="${tx}" y="${yb}" text-anchor="${anc}" font-family="Source Serif 4, Georgia, serif" font-size="12" fill="#005a8c">${tb}</text>`;
+          g += `<text x="${tx}" y="${ys}" text-anchor="${anc}" font-family="Source Serif 4, Georgia, serif" font-size="12" fill="#8f5f00">${ts}</text>`;
+          break;
+        }
+      }
+    }
+    g += `</g>`;
+    if (showPL) g += `<circle cx="${xB}" cy="${py(0)}" r="4.5" fill="#fff" stroke="#1a1a1a" stroke-width="2"/>`;
+    if (st.ST != null) {
+      const x = px(st.ST);
+      const dot = (v, col, hollow) => `<circle cx="${x}" cy="${py(v)}" r="${hollow ? 4.5 : 5.5}" fill="${hollow ? '#fff' : col}" stroke="${hollow ? col : '#fff'}" stroke-width="${hollow ? 2.5 : 2}"/>`;
+      if (showCF) dots += dot(f.scf(st.ST), '#E69F00', true) + dot(f.bcf(st.ST), '#0072B2', true);
+      if (showPL) dots += dot(f.spl(st.ST), '#E69F00', false) + dot(f.bpl(st.ST), '#0072B2', false);
+    }
+  }
+
+  // ---------- the two bands: moneyness and who makes money
+  const band = (y, h, segs, id) => {
+    g += `<clipPath id="${id}"><rect x="${L}" y="${y}" width="${Rr - L}" height="${h}" rx="7"/></clipPath><g clip-path="url(#${id})">`;
+    segs.forEach(([a, b, fill, ink, full, short]) => {
+      g += `<rect x="${a}" y="${y}" width="${Math.max(0, b - a)}" height="${h}" fill="${fill}"/>`;
+      const w = b - a, txt = tw(full, lab) + 16 < w ? full : (tw(short, lab) + 12 < w ? short : '');
+      if (txt) g += `<text x="${(a + b) / 2}" y="${y + h / 2 + 4.5}" text-anchor="middle" font-family="Source Serif 4, Georgia, serif" font-size="13" fill="${ink}">${txt}</text>`;
+    });
+    g += `</g>`;
+  };
+  const otm = c ? [L, xX] : [xX, Rr], itm = c ? [xX, Rr] : [L, xX];
+  band(b1.y, b1.h, [[...otm, '#eeebe6', '#5b6470', 'Out of the money', 'Out'], [...itm, '#d6efe4', '#00684a', 'In the money', 'In']], 'cb1');
+  const sz = c ? [L, xB] : [xB, Rr], bz = c ? [xB, Rr] : [L, xB];
+  band(b2.y, b2.h, [[...sz, '#fcefd3', '#8f5f00', 'Seller makes money', 'Seller'], [...bz, '#dcebf7', '#005a8c', 'Buyer makes money', 'Buyer']], 'cb2');
+  const tagAt = (x, y, txt) => { const w = tw(txt, tag); const cx = Math.max(L + w / 2, Math.min(Rr - w / 2, x));
+    return `<text x="${cx}" y="${y}" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="#374151" stroke="#fff" stroke-width="5" stroke-linejoin="round" paint-order="stroke">${txt}</text>`; };
+  g += `<line x1="${xX}" x2="${xX}" y1="${b1.y - 4}" y2="${b1.y + b1.h}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+  tags += tagAt(xX, b1.y - 8, `Strike ${n(st.X)}: at the money`);
+  g += `<line x1="${xB}" x2="${xB}" y1="${b2.y - 4}" y2="${b2.y + b2.h}" stroke="#1a1a1a" stroke-width="1.5"/>`;
+  tags += tagAt(xB, b2.y - 8, `Break-even ${n(st.be)}`);
+  g += `<line x1="${L}" x2="${Rr}" y1="${ay}" y2="${ay}" stroke="#cfcac2" stroke-width="1"/>`;
+  for (let v = Math.ceil(CFG.lineMin / 20) * 20; v <= CFG.lineMax; v += 20) {
+    const x = px(v);
+    g += `<line x1="${x}" x2="${x}" y1="${ay}" y2="${ay + 5}" stroke="#b8b2a9"/>`;
+    if (W >= 520 || v % 40 === 0) g += monoT(x, ay + 18, v);
+  }
+  const xs = px(CFG.S);
+  g += `<path d="M${xs} ${ay + 24} l-5 8 h10 z" fill="#4b5563"/>` + monoT(xs + 9, ay + 33, `today ${n(CFG.S)}`, 'start', '#4b5563');
+
+  // ---------- the marker for S_T, through everything
+  if (st.ST != null) {
+    const x = px(st.ST);
+    g += `<line x1="${x}" x2="${x}" y1="${on ? cy0 : b1.y - 2}" y2="${ay}" stroke="#1a1a1a" stroke-width="${on ? 1.6 : 2.5}" ${on ? 'stroke-opacity="0.55"' : ''}/>`;
+    g += dots;
+    g += `<circle cx="${x}" cy="${ay}" r="9" fill="#1a1a1a" stroke="#fff" stroke-width="2.5"/>`;
+  }
+  g += tags + `<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`;
+  svg.innerHTML = g;
+
+}
+
+/* ================= setting the price at expiration ================= */
+const clampST = v => Math.max(CFG.lineMin, Math.min(CFG.lineMax, Math.round(v)));
+function setST(v, force) { st.ST = clampST(v); renderExpiry(force); }
+function scenario(kind) {
+  const X = st.X, c = isCall(), U = (a, b) => a + (b - a) * Math.random();
+  let v, guard = 0;
+  do {
+    if (kind === 'atm') v = X;
+    else if (kind === 'itm') { const reach = Math.max(2.5 * st.price, 25); v = c ? U(X + 1, X + reach) : U(X - reach, X - 1); }
+    else if (kind === 'otm') v = c ? U(X - 45, X - 1) : U(X + 1, X + 45);
+    else { const s = vol(X) * Math.sqrt(CFG.days / 365), z = Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
+           v = CFG.S * Math.exp(-s * s / 2 + s * z); }
+    v = clampST(v);
+    if (kind === 'itm' && (c ? v <= X : v >= X)) v = c ? X + 1 : X - 1;
+    if (kind === 'otm' && (c ? v >= X : v <= X)) v = c ? X - 1 : X + 1;
+  } while (kind !== 'atm' && v === st.ST && ++guard < 20);
+  setST(v, true);
+}
+let dragging = false;
+function fromPointer(e) { const r = $('#pline').getBoundingClientRect(); return geo().inv(e.clientX - r.left); }
+$('#pline').addEventListener('pointerdown', e => {
+  dragging = true; $('#pline').classList.add('dragging'); $('#pline').setPointerCapture(e.pointerId);
+  const first = st.ST == null; setST(fromPointer(e), first);
+});
+$('#pline').addEventListener('pointermove', e => { if (dragging) setST(fromPointer(e), false); });
+const endDrag = () => { dragging = false; $('#pline').classList.remove('dragging'); };
+$('#pline').addEventListener('pointerup', endDrag);
+$('#pline').addEventListener('pointercancel', endDrag);
+$('#pline').addEventListener('keydown', e => {
+  const k = e.key, step = e.shiftKey ? 10 : 1, cur = st.ST == null ? CFG.S : st.ST;
+  if (k === 'ArrowRight' || k === 'ArrowUp') setST(cur + step, st.ST == null);
+  else if (k === 'ArrowLeft' || k === 'ArrowDown') setST(cur - step, st.ST == null);
+  else if (k === 'Home') setST(CFG.lineMin, false);
+  else if (k === 'End') setST(CFG.lineMax, false);
+  else return;
+  e.preventDefault();
+});
+
+/* ================= tooltips ================= */
+const tip = $('#tip');
+let tipFor = null, hideTimer = null, shownAt = 0;
+function showTip(el) {
+  const d = defs()[el.dataset.t]; if (!d) return;
+  clearTimeout(hideTimer);
+  if (tipFor && tipFor !== el) tipFor.classList.remove('on');
+  if (tipFor !== el || !tip.classList.contains('show')) shownAt = Date.now();
+  tipFor = el; el.classList.add('on');
+  tip.innerHTML = `<div class="tt">${d[0]}</div>${d[1]}`;
+  tip.classList.add('show');
+  const r = el.getBoundingClientRect(), tr = tip.getBoundingClientRect(), vw = document.documentElement.clientWidth;
+  let left = Math.max(8, Math.min(vw - tr.width - 8, r.left + r.width / 2 - tr.width / 2));
+  let top = r.bottom + 8;
+  if (top + tr.height > window.innerHeight - 8) top = Math.max(8, r.top - tr.height - 8);
+  tip.style.left = left + 'px'; tip.style.top = top + 'px';
+}
+function hideTip(now) {
+  clearTimeout(hideTimer);
+  const go = () => { tip.classList.remove('show'); if (tipFor) tipFor.classList.remove('on'); tipFor = null; };
+  if (now) go(); else hideTimer = setTimeout(go, 90);
+}
+document.addEventListener('pointerover', e => { const t = e.target.closest('.term'); if (t && e.pointerType === 'mouse') showTip(t); });
+document.addEventListener('pointerout', e => { const t = e.target.closest('.term'); if (t && e.pointerType === 'mouse' && !t.contains(e.relatedTarget)) hideTip(); });
+document.addEventListener('focusin', e => { const t = e.target.closest('.term'); if (t) showTip(t); });
+document.addEventListener('focusout', e => { if (e.target.closest('.term')) hideTip(); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('.term');
+  if (t) { if (tipFor === t && tip.classList.contains('show') && Date.now() - shownAt > 450) hideTip(true); else showTip(t); e.stopPropagation(); return; }
+  hideTip(true);
+});
+window.addEventListener('scroll', () => hideTip(true), { passive: true });
+
+/* ================= glossary ================= */
+function renderGlossary() {
+  const d = defs();
+  $('#glList').innerHTML = GLOSS_ORDER.map(k => `<div class="gl-item"><dt>${d[k][0]}</dt><dd>${d[k][1]}</dd></div>`).join('');
+}
+
+/* ================= events ================= */
+$('#segType').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.v === st.type) return;
+  setContract(b.dataset.v, st.X); render();           // same strike and same price at expiration, other type
+});
+$('#btnNew').addEventListener('click', () => {
+  const others = CFG.strikes.filter(x => x !== st.X);
+  setContract(st.type, others[Math.floor(Math.random() * others.length)]);
+  st.ST = null; render();
+});
+$('#scen').addEventListener('click', e => { const b = e.target.closest('[data-s]'); if (b) scenario(b.dataset.s); });
+$('#segView').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  VIEW.mode = b.dataset.v; $$('#segView button').forEach(x => x.classList.toggle('active', x === b));
+  renderLegend(); drawLine();
+});
+$('#btnGloss').addEventListener('click', () => { const g = $('#glossary'); g.hidden = !g.hidden; $('#btnGloss').setAttribute('aria-expanded', !g.hidden); });
+// redraw only when the width changes (height changes come from our own redraws), and on the next frame,
+// so the observer is never re-triggered while it is delivering a notification
+let roWidth = 0, roFrame = 0;
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  if (w === roWidth) return;
+  roWidth = w; cancelAnimationFrame(roFrame); roFrame = requestAnimationFrame(drawLine);
+}).observe($('#pline').parentElement);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawLine);
+
+window.__intro = { st, setContract, render, setST, scenario, bsm, vol, CFG, outcome, VIEW, curves };
+renderLegend();
+setContract(CFG.first.type, CFG.first.X);
+render();
+})();
+</script>
+</body>
+</html>
