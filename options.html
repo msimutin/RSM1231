@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSM 1231: Option Payoff Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --c1: #0072B2; --c2: #E69F00; --c3: #009E73; --c4: #CC79A7;
+    --bg: #faf9f7; --panel-bg: #ffffff; --text: #1a1a1a; --text-muted: #6b7280;
+    --border: #e5e2dd; --accent: #1a1a1a; --input-bg: #f5f4f2;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+  }
+  body { font-family: var(--serif); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1.5rem; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; }
+  sub { font-size: 0.72em; line-height: 0; }
+  .sym { font-family: var(--serif); font-size: 1.15em; letter-spacing: 0; }
+  button { font: inherit; }
+
+  /* ---------- presets ---------- */
+  .presets-row { display: flex; gap: 0.5rem 0.8rem; margin-bottom: 1rem; align-items: flex-start; }
+  .preset-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; flex: 1; min-width: 0; }
+  .preset-break { flex-basis: 100%; height: 0; }
+  .presets-label {
+    font-family: var(--mono); font-size: 0.78rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding-top: 0.42rem;
+  }
+  .preset-btn {
+    font-family: var(--mono); font-size: 0.74rem;
+    padding: 0.35rem 0.7rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg); color: var(--text); cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .preset-btn:hover { background: var(--accent); color: #fff; }
+  .preset-sep { width: 1px; height: 1.35rem; background: var(--border); margin: 0 0.15rem; }
+  .target { display: none; align-items: center; gap: 0.45rem; margin-left: auto; }
+  .two-mode .target { display: inline-flex; }
+  .target-label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); }
+  .preset-msg { flex-basis: 100%; font-size: 0.86rem; color: #a15c00; font-style: italic; min-height: 0; }
+  .preset-msg:empty { display: none; }
+
+  /* ---------- segmented toggles ---------- */
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--input-bg); }
+  .seg button {
+    font-family: var(--mono); font-size: 0.74rem; padding: 0.32rem 0.75rem;
+    border: 0; background: transparent; color: var(--text); cursor: pointer;
+    transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button:hover:not(.active) { background: #ebe8e3; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .seg.sm button { font-size: 0.68rem; padding: 0.12rem 0.5rem; }
+
+  /* ---------- market + view row ---------- */
+  .global-row {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 0.9rem 1.3rem; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 0.9rem 1.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+  }
+  .group { display: flex; align-items: center; gap: 0.75rem 1.25rem; flex-wrap: wrap; }
+  .view-group { margin-left: auto; padding-left: 1.5rem; border-left: 1px solid var(--border); }
+  .section-label {
+    font-family: var(--mono); font-size: 0.8rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);
+    display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;
+  }
+  .section-label .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--accent); }
+  .num-block { display: flex; flex-direction: column; gap: 0.15rem; }
+  .num-block label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+  input[type=number], select {
+    font-family: var(--serif); font-size: 0.95rem; font-variant-numeric: lining-nums tabular-nums;
+    padding: 0.26rem 0.45rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg); color: var(--text); width: 5.4rem;
+  }
+  select { width: auto; cursor: pointer; }
+  input[type=number]:focus, select:focus { outline: 2px solid rgba(0,114,178,0.35); outline-offset: 0; }
+  .ro-field {
+    font-family: var(--serif); font-size: 0.95rem; font-variant-numeric: lining-nums tabular-nums;
+    padding: 0.26rem 0.45rem; border: 1px dashed #d6d2cb; border-radius: 6px;
+    color: var(--text-muted); width: 5.4rem; cursor: default;
+  }
+  .cf-mode .price-only { display: none !important; }
+
+  /* ---------- legs ---------- */
+  .legs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem; }
+  .leg-card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px;
+    padding: 0.8rem 1rem; box-shadow: var(--shadow);
+  }
+  .leg-card.off { opacity: 0.45; }
+  .leg-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; gap: 0.5rem; }
+  .leg-title { font-family: var(--mono); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+  .leg-ctrls { display: flex; align-items: center; gap: 0.45rem; }
+  .leg-toggle { font-family: var(--mono); font-size: 0.7rem; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 5px; background: var(--input-bg); padding: 0.15rem 0.5rem; }
+  .leg-card .panel-seg { display: none; }
+  .two-mode .leg-card .panel-seg { display: inline-flex; }
+  .leg-fields { display: flex; flex-wrap: wrap; gap: 0.5rem 0.7rem; }
+
+  /* ---------- charts ---------- */
+  .charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+  .two-mode .charts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  @media (max-width: 860px) { .two-mode .charts { grid-template-columns: minmax(0, 1fr); } }
+  .chart-col { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+  .chart-col[hidden] { display: none; }
+  .chart-panel {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1rem 1.25rem 1.1rem; box-shadow: var(--shadow);
+  }
+  .panel-head { display: flex; align-items: baseline; gap: 0.35rem 1.1rem; flex-wrap: wrap; margin-bottom: 0.55rem; min-height: 1.35rem; }
+  .two-mode .panel-head { flex-direction: column; align-items: flex-start; }
+  .panel-title { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.2rem 0.95rem; font-size: 0.86rem; color: var(--text-muted); }
+  .lg { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+  .lg .sw { display: inline-block; width: 16px; height: 3px; border-radius: 2px; opacity: 0.6; }
+  .lg.total { color: var(--text); }
+  .lg.total .sw { height: 4px; opacity: 1; background: var(--accent); }
+  .lg.empty { font-style: italic; }
+  .canvas-wrap { position: relative; }
+  canvas { width: 100%; display: block; cursor: crosshair; touch-action: pan-y; }
+
+  .tip {
+    position: absolute; top: 0; left: 0; display: none; pointer-events: none; z-index: 2;
+    background: rgba(255,255,255,0.97); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08); padding: 0.45rem 0.65rem 0.5rem;
+    font-size: 0.84rem; line-height: 1.45; min-width: 12.5rem; white-space: nowrap;
+  }
+  .tip .th { font-weight: 600; margin-bottom: 0.15rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+  .tip .pin { font-family: var(--mono); font-size: 0.64rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+  .tip .tr { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 0 0.5rem; }
+  .tip .sw { width: 12px; height: 3px; border-radius: 2px; }
+  .tip .v { text-align: right; font-variant-numeric: lining-nums tabular-nums; padding-left: 0.75rem; }
+  .tip .tot { border-top: 1px solid var(--border); margin-top: 0.2rem; padding-top: 0.2rem; font-weight: 600; }
+  .tip .tot .sw { height: 4px; background: var(--accent); }
+  .tip .dec { font-size: 0.76rem; color: var(--text-muted); margin-top: 0.05rem; text-align: right; }
+
+  .readouts-row { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: 0.75rem; }
+  @media (max-width: 800px) { .readouts-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .readout-panel {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 0.85rem 1.1rem 0.8rem; box-shadow: var(--shadow); min-width: 0;
+  }
+  .ro-label {
+    font-family: var(--mono); font-size: 0.72rem; font-weight: 500;
+    color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; padding-bottom: 0.3rem;
+  }
+  .readout-val { font-size: 1.15rem; font-weight: 500; font-variant-numeric: lining-nums tabular-nums; }
+  .ro-sub { font-size: 0.84rem; color: var(--text-muted); margin-top: 0.15rem; line-height: 1.4; font-variant-numeric: lining-nums tabular-nums; }
+
+  .chart-note { font-size: 0.84rem; color: var(--text-muted); margin-top: 0.75rem; line-height: 1.5; }
+  .chart-note b { font-weight: 600; color: var(--text); }
+  .footer-row { display: flex; justify-content: flex-end; margin-top: 0.75rem; }
+  .reset-btn {
+    font-family: var(--mono); font-size: 0.78rem;
+    padding: 0.35rem 0.85rem; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--input-bg); color: var(--text-muted); cursor: pointer;
+    transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .reset-btn:hover { background: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <h1>RSM 1231: Option Payoff Builder</h1>
+  <p class="subtitle">Combine up to four positions and see what the portfolio pays at expiration, then switch to profit to net out what it costs today. Solid line: portfolio total. Faint lines: individual legs.</p>
+
+  <div class="presets-row">
+    <span class="presets-label">Presets</span>
+    <div class="preset-btns">
+      <button type="button" class="preset-btn" data-p="longcall">Long Call</button>
+      <button type="button" class="preset-btn" data-p="longput">Long Put</button>
+      <span class="preset-sep"></span>
+      <button type="button" class="preset-btn" data-p="parityA">Parity: Stock + Put</button>
+      <button type="button" class="preset-btn" data-p="parityB">Parity: Call + Bond</button>
+      <button type="button" class="preset-btn" data-p="paritySBS" title="Stock + put in Portfolio A, call + bond in Portfolio B, on two plots with the same axes">Parity: Side by Side</button>
+      <span class="preset-break"></span>
+      <button type="button" class="preset-btn" data-p="straddle">Straddle</button>
+      <button type="button" class="preset-btn" data-p="covered">Covered Call</button>
+      <button type="button" class="preset-btn" data-p="collar" title="Long stock + long 90 put + short 110 call: a floor at 90, a cap at 110">Protective Collar</button>
+      <button type="button" class="preset-btn" data-p="bullspread">Bull Call Spread</button>
+      <button type="button" class="preset-btn" data-p="butterfly" title="Long 90 call, short two 100 calls, long 110 call">Butterfly Spread</button>
+      <span class="target" title="With two plots, a preset loads into the portfolio chosen here and leaves the other one alone">
+        <span class="target-label">load presets into</span>
+        <span class="seg sm" id="segTarget"><button type="button" data-v="0">A</button><button type="button" data-v="1">B</button></span>
+      </span>
+      <span class="preset-msg" id="presetMsg"></span>
+    </div>
+  </div>
+
+  <div class="global-row">
+    <div class="group">
+      <div class="section-label"><span class="dot"></span> Market</div>
+      <div class="num-block"><label for="s0">Stock price today <span class="sym"><i>S</i><sub>0</sub></span></label><input type="number" id="s0" step="1" min="0.01"></div>
+      <div class="num-block price-only"><label for="rf">Risk-free rate (%/yr)</label><input type="number" id="rf" step="0.25"></div>
+      <div class="num-block price-only"><label for="tt">Time to expiration (yrs)</label><input type="number" id="tt" step="0.25" min="0"></div>
+    </div>
+    <div class="group view-group">
+      <div class="section-label"><span class="dot"></span> View</div>
+      <div class="num-block"><label>Plot at expiration</label>
+        <span class="seg" id="segMode"><button type="button" data-v="cf">Cash flow</button><button type="button" data-v="profit">Profit</button></span></div>
+      <div class="num-block"><label>Plots</label>
+        <span class="seg" id="segPlots"><button type="button" data-v="1">One</button><button type="button" data-v="2">Two</button></span></div>
+    </div>
+  </div>
+
+  <div class="legs-grid" id="legs"></div>
+
+  <div class="charts" id="charts"></div>
+  <p class="chart-note" id="chartNote"></p>
+
+  <div class="footer-row"><button type="button" class="reset-btn" id="resetBtn" title="Restore the default legs and market inputs (view settings are kept)">↺ Reset</button></div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= constants ================= */
+  const COLORS = ['#0072B2','#E69F00','#009E73','#CC79A7'];
+  const INK = '#1a1a1a', MUTED = '#6b7280', GRID = '#eeece8';
+  const SERIF = '"Source Serif 4", Georgia, serif';
+  const MINUS = '−';
+  const ST = '<i>S</i><sub>T</sub>';
+  const PANEL = ['A','B'];
+  const M = {l:66, r:20, t:26, b:50};            // plot margins (CSS px)
+  const MARKET_DEFAULTS = {s0:100, rf:5, T:1};
+
+  // type: call | put | stock | bond ; pos: 1 long, -1 short ; panel: 0 = A (left), 1 = B (right)
+  const defaultLegs = () => ([
+    {on:true,  type:'call', pos:1, strike:100, price:10.76, qty:1, face:100, panel:0},
+    {on:false, type:'put',  pos:1, strike:100, price:6, qty:1, face:100, panel:0},
+    {on:false, type:'stock',pos:1, strike:100, price:10.76, qty:1, face:100, panel:1},
+    {on:false, type:'bond', pos:1, strike:100, price:6, qty:1, face:100, panel:1},
+  ]);
+
+  const app = {
+    mode: 'cf',          // 'cf' = cash flow at expiration (default) | 'profit'
+    two: false,          // two side-by-side plots?
+    target: 0,           // preset target portfolio in two-plot mode
+    s0: MARKET_DEFAULTS.s0, rf: MARKET_DEFAULTS.rf, T: MARKET_DEFAULTS.T,
+    legs: defaultLegs(),
+    cross: null,         // crosshair {x: S_T, pinned: bool}
+    view: null,          // cached analysis + shared axes
+  };
+
+  /* ================= small helpers ================= */
+  const $ = id => document.getElementById(id);
+  const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+  function el(tag, attrs, html){
+    const e = document.createElement(tag);
+    for(const k in (attrs||{})) e.setAttribute(k, attrs[k]);
+    if(html !== undefined) e.innerHTML = html;
+    return e;
+  }
+  function fmtAbs(v, minD, maxD){ return Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:minD, maximumFractionDigits:maxD}); }
+  function signed(v, body){ return (v < 0 && /[1-9]/.test(body) ? MINUS : '') + body; }
+  const fixed   = v => signed(v, fmtAbs(v, 2, 2));          // 2 decimals, true minus sign
+  const trimNum = v => signed(v, fmtAbs(v, 0, 2));          // up to 2 decimals
+  const money   = v => signed(v, '$' + fmtAbs(v, 2, 2));
+  const fmtIn   = v => String(Math.round(v*10000)/10000);   // value shown in an input box
+
+  function niceStep(raw){
+    if(!(raw > 0)) return 1;
+    const p = Math.pow(10, Math.floor(Math.log10(raw)));
+    const r = raw / p;
+    return (r < 1.5 ? 1 : r < 3.5 ? 2 : r < 7.5 ? 5 : 10) * p;
+  }
+  function niceCeil(x){ const s = niceStep(x/8); return Math.ceil(x/s - 1e-9) * s; }
+
+  /* ================= finance ================= */
+  const isOpt = L => L.type === 'call' || L.type === 'put';
+  const sq = L => L.pos * L.qty;                                   // signed quantity
+  const bondPrice = L => L.face / Math.pow(1 + app.rf/100, app.T);
+  function priceToday(L){                                          // cost today of ONE long unit
+    if(isOpt(L)) return L.price;
+    if(L.type === 'stock') return app.s0;
+    return bondPrice(L);
+  }
+  function cashFlow(L, x){                                         // cash flow at expiration of ONE long unit
+    if(L.type === 'call') return Math.max(0, x - L.strike);
+    if(L.type === 'put')  return Math.max(0, L.strike - x);
+    if(L.type === 'stock') return x;
+    return L.face;                                                 // bond
+  }
+  // plotted value of a leg in the current mode
+  const legY = (L, x) => sq(L) * (cashFlow(L, x) - (app.mode === 'profit' ? priceToday(L) : 0));
+  // slope of a leg above every strike (calls and stock rise 1-for-1)
+  const highSlope = L => (L.type === 'call' || L.type === 'stock') ? sq(L) : 0;
+
+  const visiblePanels = () => app.two ? [0,1] : [0];
+  function legsOn(p){
+    const out = [];
+    app.legs.forEach((L,i) => { if(L.on && (!app.two || L.panel === p)) out.push(i); });
+    return out;
+  }
+
+  // Every payoff here is piecewise linear with kinks only at strikes, so extremes and
+  // breakevens are computed exactly from the kink points plus the slope beyond the last one.
+  function analyze(idx){
+    const Ls = idx.map(i => app.legs[i]);
+    const kinks = [...new Set(Ls.filter(isOpt).map(L => L.strike).filter(k => k > 0))].sort((a,b) => a-b);
+    const pts = [0, ...kinks];
+    const f = x => Ls.reduce((v,L) => v + legY(L,x), 0);
+    const ys = pts.map(f);
+    const sInf = Ls.reduce((s,L) => s + highSlope(L), 0);
+    const cost = Ls.reduce((c,L) => c + sq(L) * priceToday(L), 0);
+    return { idx, Ls, kinks, pts, ys, sInf, cost, f,
+             max: extreme(pts, ys, sInf, +1), min: extreme(pts, ys, sInf, -1),
+             be: breakevens(pts, ys, sInf) };
+  }
+  const SLOPE_EPS = 1e-9;
+  function extreme(pts, ys, sInf, sign){
+    if(sign * sInf > SLOPE_EPS) return {unbounded: true};
+    const vals = ys.map(y => sign * y);
+    const best = Math.max(...vals);
+    const tol = 1e-7 * (1 + Math.abs(best));
+    const hit = vals.map(v => best - v <= tol);
+    const runs = [];
+    for(let i = 0; i < pts.length; i++){
+      if(!hit[i]) continue;
+      let j = i; while(j + 1 < pts.length && hit[j+1]) j++;
+      runs.push({a: pts[i], b: pts[j], inf: false});
+      i = j;
+    }
+    if(Math.abs(sInf) <= SLOPE_EPS && hit[pts.length-1]) runs[runs.length-1].inf = true;
+    return {unbounded: false, value: sign * best, runs};
+  }
+  function breakevens(pts, ys, sInf){
+    const tol = 1e-7 * (1 + Math.max(...ys.map(Math.abs)));
+    const z = y => Math.abs(y) <= tol;
+    const roots = [], ivs = [];
+    for(let i = 0; i < pts.length; i++){
+      const x0 = pts[i], y0 = ys[i];
+      if(z(y0)) roots.push(x0);
+      if(i < pts.length - 1){
+        const x1 = pts[i+1], y1 = ys[i+1];
+        if(z(y0) && z(y1)) ivs.push([x0, x1]);
+        else if(!z(y0) && !z(y1) && (y0 < 0) !== (y1 < 0)) roots.push(x0 + (x1 - x0) * (-y0) / (y1 - y0));
+      } else {
+        if(z(y0) && Math.abs(sInf) <= SLOPE_EPS) ivs.push([x0, Infinity]);
+        else if(!z(y0) && Math.abs(sInf) > SLOPE_EPS && (y0 < 0) !== (sInf < 0)) roots.push(x0 - y0 / sInf);
+      }
+    }
+    const merged = [];
+    ivs.sort((a,b) => a[0] - b[0]).forEach(iv => {
+      const last = merged[merged.length-1];
+      if(last && iv[0] <= last[1] + 1e-9) last[1] = Math.max(last[1], iv[1]); else merged.push(iv.slice());
+    });
+    const pts1 = [...new Set(roots.map(r => Math.round(r*1e8)/1e8))]
+      .filter(r => !merged.some(([a,b]) => r >= a - 1e-9 && r <= b + 1e-9));
+    return [...pts1.map(r => ({x: r})), ...merged.map(([a,b]) => ({a, b}))]
+      .sort((u,v) => (u.x ?? u.a) - (v.x ?? v.a));
+  }
+
+  /* ================= text for legs and readouts ================= */
+  const PLURAL = {call:'calls', put:'puts', stock:'shares', bond:'bonds'};
+  function legName(L){
+    const side = L.pos > 0 ? 'Long' : 'Short';
+    let s = L.qty === 1 ? `${side} ${L.type}` : `${side} ${trimNum(L.qty)} ${PLURAL[L.type]}`;
+    if(isOpt(L)) s += `, <i>X</i> = ${trimNum(L.strike)}`;
+    if(L.type === 'bond') s += `, face ${trimNum(L.face)}`;
+    return s;
+  }
+  function where(ext){
+    return ext.runs.map(({a,b,inf}) => {
+      if(inf && a === 0) return `for all ${ST}`;
+      if(inf) return `for ${ST} ≥ ${trimNum(a)}`;
+      if(a === b) return `at ${ST} = ${trimNum(a)}`;
+      if(a === 0) return `for ${ST} ≤ ${trimNum(b)}`;
+      return `for ${trimNum(a)} ≤ ${ST} ≤ ${trimNum(b)}`;
+    }).map((t,k,arr) => (k > 0 && t.startsWith('for ') && arr[k-1].startsWith('for ')) ? t.slice(4) : t).join(' or ');
+  }
+  function costTerms(a){
+    return a.idx.map((i,k) => {
+      const L = app.legs[i], amt = sq(L) * priceToday(L);
+      const name = (L.qty === 1 ? '' : trimNum(L.qty) + '×') + L.type;
+      const lead = k === 0 ? (amt < 0 ? MINUS + ' ' : '') : (amt < 0 ? ` ${MINUS} ` : ' + ');
+      return lead + `${name} ${fixed(Math.abs(amt))}`;
+    }).join('');
+  }
+  function card(label, val, sub){
+    return `<div class="readout-panel"><div class="ro-label">${label}</div>` +
+           `<div class="readout-val">${val}</div><div class="ro-sub">${sub || '&nbsp;'}</div></div>`;
+  }
+
+  /* ================= DOM: chart panels ================= */
+  const chartsEl = $('charts');
+  const P = [0,1].map(p => {
+    const col = el('section', {class:'chart-col'});
+    col.innerHTML =
+      `<div class="chart-panel"><div class="panel-head"><span class="panel-title"></span><span class="legend"></span></div>` +
+      `<div class="canvas-wrap"><canvas></canvas><div class="tip"></div></div></div>` +
+      `<div class="readouts-row"></div>`;
+    chartsEl.appendChild(col);
+    return { col, head: col.querySelector('.panel-head'), title: col.querySelector('.panel-title'), legend: col.querySelector('.legend'),
+             cv: col.querySelector('canvas'), tip: col.querySelector('.tip'),
+             ro: col.querySelector('.readouts-row'), geom: null };
+  });
+
+  /* ================= DOM: leg cards ================= */
+  const legsEl = $('legs');
+  function wrap(lab, input){
+    const b = el('div', {class:'num-block'});
+    b.appendChild(el('label', {}, lab)); b.appendChild(input); return b;
+  }
+  function selectField(lab, opts, cur, onPick){
+    const s = el('select');
+    opts.forEach(([v,t]) => { const o = el('option', {value:v}, t); if(v === cur) o.selected = true; s.appendChild(o); });
+    s.addEventListener('change', () => onPick(s.value));
+    return wrap(lab, s);
+  }
+  // Number inputs commit on Enter, on blur, or on spinner / arrow-key steps (not on every keystroke),
+  // so typing "110" never flashes a chart for a strike of 1.
+  function numField(lab, get, set, o){
+    o = o || {};
+    const inp = el('input', {type:'number', step: o.step || '1', value: fmtIn(get())});
+    if(o.min !== undefined) inp.setAttribute('min', o.min);
+    inp.addEventListener('change', () => {
+      let v = parseFloat(inp.value);
+      if(!isFinite(v)){ inp.value = fmtIn(get()); return; }
+      if(o.min !== undefined && v < o.min) v = o.min;
+      v = Math.round(v*100) / 100;
+      set(v); inp.value = fmtIn(v); update();
+    });
+    const b = wrap(lab, inp);
+    if(o.cls) b.classList.add(o.cls);
+    return b;
+  }
+  function buildLegCards(){
+    legsEl.innerHTML = '';
+    app.legs.forEach((L,i) => {
+      const card = el('div', {class:'leg-card' + (L.on ? '' : ' off')});
+      card.style.borderLeftColor = COLORS[i];
+
+      const head = el('div', {class:'leg-head'});
+      head.appendChild(el('span', {class:'leg-title'}, 'Leg ' + (i+1)));
+      const ctr = el('div', {class:'leg-ctrls'});
+      const seg = el('span', {class:'seg sm panel-seg', title:'Show this leg on plot A (left) or B (right); turns the leg on'});
+      PANEL.forEach((nm,p) => {
+        const b = el('button', {type:'button', 'aria-pressed': String(L.panel === p)}, nm);
+        if(L.panel === p) b.classList.add('active');
+        b.addEventListener('click', () => { L.panel = p; L.on = true; buildLegCards(); update(); });   // one click: on + placed
+        seg.appendChild(b);
+      });
+      ctr.appendChild(seg);
+      const tog = el('button', {class:'leg-toggle', type:'button'}, L.on ? 'on' : 'off');
+      tog.addEventListener('click', () => {
+        L.on = !L.on;
+        if(L.on && !app.two) L.panel = 0;     // a leg switched on in one-plot mode joins Portfolio A
+        buildLegCards(); update();
+      });
+      ctr.appendChild(tog);
+      head.appendChild(ctr);
+      card.appendChild(head);
+
+      const f = el('div', {class:'leg-fields'});
+      f.appendChild(selectField('Type', [['call','Call'],['put','Put'],['stock','Stock'],['bond','Bond (pays face)']], L.type,
+        v => { L.type = v; buildLegCards(); update(); }));
+      f.appendChild(selectField('Position', [['1','Long'],['-1','Short']], String(L.pos),
+        v => { L.pos = +v; update(); }));
+      if(isOpt(L)){
+        f.appendChild(numField('Strike X', () => L.strike, v => { L.strike = v; }, {min:0}));
+        f.appendChild(numField('Price', () => L.price, v => { L.price = v; }, {min:0, cls:'price-only'}));
+      } else {
+        if(L.type === 'bond') f.appendChild(numField('Face value', () => L.face, v => { L.face = v; }, {min:0}));
+        const ro = el('div', {class:'ro-field', 'data-ro': String(i),
+          title: L.type === 'stock' ? 'Stock price today = S₀' : 'PV of face at the risk-free rate over T years'});
+        const b = wrap(L.type === 'stock' ? 'Price (= <span class="sym"><i>S</i><sub>0</sub></span>)' : 'Price (= PV)', ro);
+        b.classList.add('price-only');
+        f.appendChild(b);
+      }
+      f.appendChild(numField('Qty', () => L.qty, v => { L.qty = v; }, {min:0}));
+      card.appendChild(f);
+      legsEl.appendChild(card);
+    });
+    refreshRO();
+  }
+  function refreshRO(){
+    legsEl.querySelectorAll('[data-ro]').forEach(d => { d.textContent = fixed(priceToday(app.legs[+d.dataset.ro])); });
+  }
+
+  /* ================= readouts + legends ================= */
+  function renderLegend(p){
+    const a = app.view.panels[p];
+    if(!a.idx.length){
+      P[p].legend.innerHTML = `<span class="lg empty">${app.two ? 'no legs assigned to ' + PANEL[p] : 'no active legs'}</span>`;
+      return;
+    }
+    P[p].legend.innerHTML = `<span class="lg total"><span class="sw"></span><span>Portfolio total</span></span>` +
+      a.idx.map(i => `<span class="lg"><span class="sw" style="background:${COLORS[i]}"></span><span>${legName(app.legs[i])}</span></span>`).join('');
+  }
+  function renderReadouts(p){
+    const a = app.view.panels[p], box = P[p].ro, empty = !a.idx.length, D = '—';
+    let html;
+    if(app.mode === 'cf'){
+      const mx = empty ? [D] : a.max.unbounded ? ['Unbounded', `rises without limit as ${ST} → ∞`] : [money(a.max.value), where(a.max)];
+      const mn = empty ? [D] : a.min.unbounded ? ['Unbounded', `falls without limit as ${ST} → ∞`] : [money(a.min.value), where(a.min)];
+      html = card('Max cash flow', ...mx) + card('Min cash flow', ...mn);
+      box.style.setProperty('--cols', 2);
+    } else {
+      let cost = [D], be = [D], mx = [D], mn = [D];
+      if(!empty){
+        cost = Math.abs(a.cost) < 0.005 ? ['$0.00', 'costless today']
+             : [a.cost > 0 ? money(a.cost) + ' paid' : money(-a.cost) + ' received', costTerms(a)];
+        be = a.be.length
+          ? [a.be.map(z => z.x !== undefined ? money(z.x)
+                        : z.b === Infinity ? '≥ ' + money(z.a) : money(z.a) + '–' + money(z.b)).join(', '),
+             a.be.length > 1 ? `values of ${ST} where profit = 0` : `value of ${ST} where profit = 0`]
+          : ['None', a.f(0) > 0 ? `profit is positive for every ${ST}` : `profit is negative for every ${ST}`];
+        mx = a.max.unbounded ? ['Unbounded', `rises without limit as ${ST} → ∞`] : [money(a.max.value), where(a.max)];
+        mn = a.min.unbounded ? ['Unbounded', `grows without limit as ${ST} → ∞`]
+           : a.min.value > -0.005 ? ['None', 'profit is never negative']
+           : [money(-a.min.value), where(a.min)];
+      }
+      html = card('Cost today (net outlay)', ...cost) + card('Breakeven(s)', ...be) +
+             card('Max profit', ...mx) + card('Max loss', ...mn);
+      box.style.setProperty('--cols', app.two ? 2 : 4);
+    }
+    box.innerHTML = html;
+  }
+
+  /* ================= shared axes ================= */
+  const breakpoints = (kinks, xMax) => [0, ...kinks.filter(k => k < xMax), xMax];
+  function computeAxes(panels){
+    let xMax = 2 * app.s0;
+    panels.forEach(a => a.Ls.forEach(L => { if(isOpt(L)) xMax = Math.max(xMax, 1.8 * L.strike); }));
+    xMax = niceCeil(xMax);
+    let lo = 0, hi = 0, any = false;
+    const see = y => { lo = Math.min(lo, y); hi = Math.max(hi, y); };
+    panels.forEach(a => {
+      if(!a.idx.length) return;
+      any = true;
+      const xs = breakpoints(a.kinks, xMax);
+      a.Ls.forEach(L => xs.forEach(x => see(legY(L, x))));
+      xs.forEach(x => see(a.f(x)));
+    });
+    if(!any){ lo = 0; hi = 100; }
+    if(hi - lo < 1e-9){ lo -= 10; hi += 10; }
+    const R = hi - lo, ystep = niceStep(R / 5), half = ystep / 2;
+    lo = Math.floor((lo - 0.05*R) / half) * half;      // snap to half-steps: small edits rarely move the axes
+    hi = Math.ceil((hi + 0.05*R) / half) * half;
+    return {xMax, lo, hi, ystep};
+  }
+
+  /* ================= drawing ================= */
+  const plotHeight = () => app.two ? (window.innerWidth < 860 ? 360 : 400) : 430;
+  function fitCanvas(cv, cssH){
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = cv.clientWidth;
+    cv.style.height = cssH + 'px';
+    const W = Math.round(cssW * dpr), H = Math.round(cssH * dpr);
+    if(cv.width !== W) cv.width = W;
+    if(cv.height !== H) cv.height = H;
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return {ctx, W: cssW, H: cssH, dpr};
+  }
+  function richText(ctx, parts, x, y, align, size){
+    // parts: [{t, it, sub}] — canvas has no subscripts, so draw segments at a smaller size and lower baseline
+    const fontOf = q => `${q.it ? 'italic ' : ''}${q.sub ? Math.round(size*0.75) : size}px ${SERIF}`;
+    let w = 0;
+    parts.forEach(q => { ctx.font = fontOf(q); q.w = ctx.measureText(q.t).width; w += q.w; });
+    let cx = align === 'center' ? x - w/2 : align === 'right' ? x - w : x;
+    ctx.textAlign = 'left';
+    parts.forEach(q => { ctx.font = fontOf(q); ctx.fillText(q.t, cx, y + (q.sub ? size*0.28 : 0)); cx += q.w; });
+  }
+  function polyline(ctx, pts){
+    ctx.beginPath();
+    pts.forEach(([x,y], i) => i ? ctx.lineTo(x,y) : ctx.moveTo(x,y));
+    ctx.stroke();
+  }
+  function dot(ctx, x, y, r, fill, ring){
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2*Math.PI);
+    ctx.fillStyle = fill; ctx.fill();
+    if(ring){ ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke(); }
+  }
+
+  function drawPanel(p){
+    const a = app.view.panels[p], ax = app.view.ax, cv = P[p].cv;
+    const {ctx, W, H, dpr} = fitCanvas(cv, plotHeight());
+    const pw = W - M.l - M.r, ph = H - M.t - M.b;
+    const X = v => M.l + pw * v / ax.xMax;
+    const Y = v => M.t + ph * (1 - (v - ax.lo) / (ax.hi - ax.lo));
+    const crisp = v => (Math.round(v * dpr - 0.5) + 0.5) / dpr;
+    P[p].geom = {X, Y, pw, ph, W, H, xMax: ax.xMax};
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineWidth = 1; ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
+
+    // grid + tick labels
+    ctx.font = `13px ${SERIF}`;
+    ctx.strokeStyle = GRID; ctx.fillStyle = MUTED;
+    const nx = clamp(Math.round(pw / 75), 4, 10), xstep = niceStep(ax.xMax / nx);
+    ctx.textAlign = 'center';
+    for(let k = 0; k * xstep <= ax.xMax + 1e-9; k++){
+      const x = k * xstep, px = crisp(X(x));
+      ctx.beginPath(); ctx.moveTo(px, M.t); ctx.lineTo(px, H - M.b); ctx.stroke();
+      ctx.fillText(trimNum(x), X(x), H - M.b + 19);
+    }
+    ctx.textAlign = 'right';
+    for(let k = Math.ceil(ax.lo / ax.ystep - 1e-9); k * ax.ystep <= ax.hi + 1e-9; k++){
+      const y = k * ax.ystep, py = crisp(Y(y));
+      ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+      ctx.fillText(trimNum(y), M.l - 9, Y(y) + 4);
+    }
+    // zero line
+    ctx.strokeStyle = '#9ca3af'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(M.l, Y(0)); ctx.lineTo(W - M.r, Y(0)); ctx.stroke();
+    // S0 marker
+    if(app.s0 <= ax.xMax){
+      ctx.strokeStyle = '#c9c5be'; ctx.lineWidth = 1; ctx.setLineDash([5,4]);
+      const sx = crisp(X(app.s0));
+      ctx.beginPath(); ctx.moveTo(sx, M.t); ctx.lineTo(sx, H - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#9ca3af';
+      richText(ctx, [{t:'S', it:true}, {t:'0', sub:true}], X(app.s0), M.t - 9, 'center', 13);
+    }
+    // axis titles
+    ctx.fillStyle = MUTED;
+    richText(ctx, [{t:'Stock price at expiration, '}, {t:'S', it:true}, {t:'T', sub:true}], M.l + pw/2, H - 9, 'center', 13);
+    ctx.save(); ctx.translate(15, M.t + ph/2); ctx.rotate(-Math.PI/2);
+    ctx.textAlign = 'center'; ctx.font = `13px ${SERIF}`;
+    ctx.fillText(app.mode === 'cf' ? 'Cash flow at expiration ($)' : 'Profit at expiration ($)', 0, 0);
+    ctx.restore();
+
+    if(!a.idx.length){
+      ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center';
+      ctx.font = `italic 15px ${SERIF}`;
+      ctx.fillText(app.two ? `No legs assigned to Portfolio ${PANEL[p]}` : 'No active legs', M.l + pw/2, M.t + ph/2 - 6);
+      ctx.font = `13px ${SERIF}`;
+      ctx.fillText(app.two ? `Use the A / B switch on a leg card, or load a preset into ${PANEL[p]}` : 'Turn a leg on, or pick a preset',
+                   M.l + pw/2, M.t + ph/2 + 16);
+      return;
+    }
+
+    // payoff lines (exact: drawn through the kinks)
+    const xs = breakpoints(a.kinks, ax.xMax);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(M.l - 2, M.t - 2, pw + 4, ph + 4); ctx.clip();
+    a.idx.forEach(i => {
+      const L = app.legs[i];
+      ctx.strokeStyle = COLORS[i]; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.8;
+      polyline(ctx, xs.map(x => [X(x), Y(legY(L, x))]));
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = INK; ctx.lineWidth = 3.2;
+    polyline(ctx, xs.map(x => [X(x), Y(a.f(x))]));
+    ctx.restore();
+
+    // crosshair (shared by both plots)
+    if(app.cross){
+      const x = clamp(app.cross.x, 0, ax.xMax), px = X(x);
+      ctx.save();
+      ctx.strokeStyle = app.cross.pinned ? 'rgba(26,26,26,0.7)' : 'rgba(26,26,26,0.45)';
+      ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+      ctx.beginPath(); ctx.moveTo(crisp(px), M.t); ctx.lineTo(crisp(px), H - M.b); ctx.stroke();
+      ctx.restore();
+      a.idx.forEach(i => dot(ctx, px, Y(legY(app.legs[i], x)), 3.6, COLORS[i], false));
+      dot(ctx, px, Y(a.f(x)), 5, INK, true);
+      // value tag on the x axis
+      const label = trimNum(x);
+      ctx.font = `600 12px ${SERIF}`;
+      const tw = ctx.measureText(label).width + 12, th = 18;
+      const tx = clamp(px - tw/2, 2, W - tw - 2), ty = H - M.b + 5;
+      ctx.fillStyle = INK;
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(tx, ty, tw, th, 4); else ctx.rect(tx, ty, tw, th);
+      ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+      ctx.fillText(label, tx + tw/2, ty + 13);
+    }
+  }
+
+  function updateTip(p){
+    const a = app.view.panels[p], g = P[p].geom, tip = P[p].tip;
+    if(!app.cross || !a.idx.length || !g){ tip.style.display = 'none'; return; }
+    const x = clamp(app.cross.x, 0, g.xMax), total = a.f(x);
+    let h = `<div class="th"><span>${ST} = ${trimNum(x)}</span>${app.cross.pinned ? '<span class="pin">pinned</span>' : ''}</div>`;
+    a.idx.forEach(i => {
+      const L = app.legs[i];
+      h += `<div class="tr"><span class="sw" style="background:${COLORS[i]}"></span><span>${legName(L)}</span><span class="v">${fixed(legY(L, x))}</span></div>`;
+    });
+    h += `<div class="tr tot"><span class="sw"></span><span>${app.mode === 'cf' ? 'Total cash flow' : 'Total profit'}</span><span class="v">${fixed(total)}</span></div>`;
+    if(app.mode === 'profit'){
+      const cf = total + a.cost;
+      h += `<div class="dec">= ${fixed(cf)} cash flow ${a.cost >= 0 ? MINUS + ' ' + fixed(a.cost) + ' cost' : '+ ' + fixed(-a.cost) + ' received'}</div>`;
+    }
+    tip.innerHTML = h;
+    tip.style.display = 'block';
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const px = g.X(x), py = g.Y(total);
+    let left = px + 16;
+    if(left + tw > g.W - 4) left = px - 16 - tw;
+    left = Math.max(4, left);
+    const top = py < M.t + g.ph * 0.5 ? M.t + g.ph - th - 6 : M.t + 6;   // keep clear of the total line's dot
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  // Legends can wrap differently in A and B; give both headers the same height so the plots line up.
+  function equalizeHeads(){
+    P.forEach(pp => { pp.head.style.minHeight = ''; });
+    if(app.two && P[0].col.offsetTop === P[1].col.offsetTop){
+      const h = Math.max(P[0].head.offsetHeight, P[1].head.offsetHeight);
+      P.forEach(pp => { pp.head.style.minHeight = h + 'px'; });
+    }
+  }
+  function draw(){
+    if(!app.view) return;
+    equalizeHeads();
+    visiblePanels().forEach(p => { drawPanel(p); updateTip(p); });
+  }
+
+  /* ================= crosshair interaction ================= */
+  function pointerX(p, e){
+    const g = P[p].geom, r = P[p].cv.getBoundingClientRect();
+    const x = clamp((e.clientX - r.left - M.l) / g.pw * g.xMax, 0, g.xMax);
+    const kinks = [...new Set(visiblePanels().flatMap(q => app.view.panels[q].kinks)), app.s0];
+    for(const k of kinks) if(Math.abs(g.X(k) - g.X(x)) <= 4) return k;     // snap to strikes and S0
+    const res = niceStep(g.xMax / 200);
+    return Math.round(Math.round(x / res) * res * 1e6) / 1e6;
+  }
+  function setCross(x, pinned){ app.cross = {x, pinned}; draw(); }
+  P.forEach((pp, p) => {
+    let dragging = false;
+    pp.cv.addEventListener('pointermove', e => {
+      if(!pp.geom) return;
+      if(e.pointerType === 'mouse'){ if(!(app.cross && app.cross.pinned)) setCross(pointerX(p, e), false); }
+      else if(dragging) setCross(pointerX(p, e), true);
+    });
+    pp.cv.addEventListener('pointerdown', e => {
+      if(!pp.geom) return;
+      const x = pointerX(p, e);
+      if(e.pointerType === 'mouse'){
+        if(e.button !== 0) return;
+        setCross(x, !(app.cross && app.cross.pinned));      // click pins; click again releases
+      } else {
+        if(app.cross && app.cross.pinned && Math.abs(pp.geom.X(app.cross.x) - pp.geom.X(x)) < 10){ app.cross = null; draw(); return; }
+        dragging = true;
+        try { pp.cv.setPointerCapture(e.pointerId); } catch(_) {}
+        setCross(x, true);
+      }
+    });
+    ['pointerup','pointercancel'].forEach(t => pp.cv.addEventListener(t, () => { dragging = false; }));
+    pp.cv.addEventListener('pointerleave', e => {
+      if(e.pointerType === 'mouse' && app.cross && !app.cross.pinned){ app.cross = null; draw(); }
+    });
+  });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && app.cross){ app.cross = null; draw(); } });
+
+  /* ================= update cycle ================= */
+  function update(){
+    const panels = [analyze(legsOn(0)), analyze(app.two ? legsOn(1) : [])];
+    app.view = {panels, ax: computeAxes(visiblePanels().map(p => panels[p]))};
+    visiblePanels().forEach(p => { renderLegend(p); renderReadouts(p); });
+    refreshRO();
+    draw();
+  }
+  function setSeg(id, v){
+    $(id).querySelectorAll('button').forEach(b => {
+      const on = b.dataset.v === String(v);
+      b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
+    });
+  }
+  function noteText(){
+    const hover = `Hover over a plot to read every leg at any ${ST}; click to pin the reading, click again (or press Esc) to release.`;
+    const shared = app.two ? ' Both plots always share the same axes, so equal payoffs look identical.' : '';
+    if(app.mode === 'cf')
+      return `<b>Cash flow at expiration</b>: what each position pays its holder on the expiration date (negative = the holder must pay), ignoring what it cost to set up today.${shared} ${hover}`;
+    return `<b>Profit at expiration</b> = cash flow at expiration − cost today, NOT adjusted for time value — the convention used in class diagrams. ` +
+           `Option prices are inputs (presets fill them with Black–Scholes values at 21% volatility, so put–call parity holds across presets); the stock costs <i>S</i><sub>0</sub> and the bond costs the PV of its face at the risk-free rate.${shared} ${hover}`;
+  }
+  function syncControls(){
+    const root = $('app');
+    root.classList.toggle('cf-mode', app.mode === 'cf');
+    root.classList.toggle('two-mode', app.two);
+    setSeg('segMode', app.mode);
+    setSeg('segPlots', app.two ? '2' : '1');
+    setSeg('segTarget', app.target);
+    P[1].col.hidden = !app.two;
+    P[0].title.textContent = app.two ? 'Portfolio A' : 'Portfolio';
+    P[1].title.textContent = 'Portfolio B';
+    $('chartNote').innerHTML = noteText();
+    $('s0').value = fmtIn(app.s0); $('rf').value = fmtIn(app.rf); $('tt').value = fmtIn(app.T);
+  }
+  function renderAll(){ syncControls(); buildLegCards(); update(); }
+
+  /* ================= controls ================= */
+  function bindSeg(id, onPick){
+    $(id).addEventListener('click', e => { const b = e.target.closest('button'); if(b) onPick(b.dataset.v); });
+  }
+  bindSeg('segMode',   v => { app.mode = v; renderAll(); });
+  bindSeg('segPlots',  v => { app.two = (v === '2'); renderAll(); });
+  bindSeg('segTarget', v => { app.target = +v; setSeg('segTarget', app.target); });
+
+  function bindMarket(id, key, min){
+    const inp = $(id);
+    inp.addEventListener('change', () => {
+      let v = parseFloat(inp.value);
+      if(!isFinite(v)){ inp.value = fmtIn(app[key]); return; }
+      if(v < min) v = min;
+      app[key] = Math.round(v*10000) / 10000;
+      inp.value = fmtIn(app[key]);
+      update();
+    });
+  }
+  bindMarket('s0', 's0', 0.01);
+  bindMarket('rf', 'rf', -99);
+  bindMarket('tt', 'T', 0);
+
+  /* ================= presets ================= */
+  // Preset option prices: Black–Scholes at one volatility, using the current market inputs, so the presets
+  // agree with each other (no spread or butterfly arbitrage) and with put–call parity.
+  // At the defaults (S0 = 100, 5%, 1 yr) this gives the 100-strike put 6.00 and call 10.76.
+  const PRESET_VOL = 0.21;
+  function normCdf(x){                       // Abramowitz & Stegun 26.2.17, |error| < 7.5e-8
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989422804014327 * Math.exp(-x*x/2);
+    const q = d * t * (0.319381530 + t*(-0.356563782 + t*(1.781477937 + t*(-1.821255978 + t*1.330274429))));
+    return x >= 0 ? 1 - q : q;
+  }
+  const pvX = X => X / Math.pow(1 + app.rf/100, app.T);     // same discounting as the bond leg
+  function bsPut(X){
+    const S = app.s0, D = pvX(X);
+    if(app.T <= 1e-9 || X <= 0) return Math.max(0, D - S);
+    const v = PRESET_VOL * Math.sqrt(app.T);
+    const d1 = (Math.log(S / D) + 0.5*v*v) / v, d2 = d1 - v;
+    return D * normCdf(-d2) - S * normCdf(-d1);
+  }
+  const cents  = v => Math.round(v * 100) / 100;
+  const putPx  = X => cents(bsPut(X));
+  const callPx = X => Math.max(0, cents(putPx(X) + app.s0 - pvX(X)));   // from the put via parity, to the cent
+  const PRESETS = {
+    longcall:  () => [{type:'call', pos: 1, strike:100, price:callPx(100)}],
+    longput:   () => [{type:'put',  pos: 1, strike:100, price:putPx(100)}],
+    parityA:   () => [{type:'stock',pos: 1}, {type:'put', pos:1, strike:100, price:putPx(100)}],
+    parityB:   () => [{type:'call', pos: 1, strike:100, price:callPx(100)}, {type:'bond', pos:1, face:100}],
+    straddle:  () => [{type:'call', pos: 1, strike:100, price:callPx(100)}, {type:'put', pos:1, strike:100, price:putPx(100)}],
+    covered:   () => [{type:'stock',pos: 1}, {type:'call', pos:-1, strike:110, price:callPx(110)}],
+    collar:    () => [{type:'stock',pos: 1}, {type:'put',  pos: 1, strike:90,  price:putPx(90)},
+                      {type:'call', pos:-1, strike:110, price:callPx(110)}],
+    bullspread:() => [{type:'call', pos: 1, strike:95,  price:callPx(95)}, {type:'call', pos:-1, strike:110, price:callPx(110)}],
+    butterfly: () => [{type:'call', pos: 1, strike:90,  price:callPx(90)},
+                      {type:'call', pos:-1, strike:100, price:callPx(100), qty:2},
+                      {type:'call', pos: 1, strike:110, price:callPx(110)}],
+  };
+  let msgTimer = null;
+  function flash(msg){
+    const m = $('presetMsg'); m.textContent = msg;
+    clearTimeout(msgTimer); msgTimer = setTimeout(() => { m.textContent = ''; }, 6000);
+  }
+  function blankLegs(){ return defaultLegs().map(L => Object.assign(L, {on:false})); }
+  function applyPreset(key){
+    app.cross = null; $('presetMsg').textContent = '';
+    if(key === 'paritySBS'){
+      // Portfolio A: stock + put (legs 1–2); Portfolio B: call + bond (legs 3–4)
+      const legs = blankLegs();
+      [...PRESETS.parityA().map(c => ({...c, panel:0})), ...PRESETS.parityB().map(c => ({...c, panel:1}))]
+        .forEach((c,i) => Object.assign(legs[i], {on:true, qty:1}, c));
+      app.legs = legs; app.two = true;
+      renderAll(); return;
+    }
+    const cfg = PRESETS[key]();
+    if(!app.two){
+      const legs = blankLegs();
+      cfg.forEach((c,i) => Object.assign(legs[i], {on:true, qty:1, panel:0}, c));
+      app.legs = legs;
+    } else {
+      // load into the chosen portfolio, keeping whatever is on the other one
+      const T = app.target, O = 1 - T;
+      const free = app.legs.map((L,i) => (L.on && L.panel === O) ? -1 : i).filter(i => i >= 0);
+      if(free.length < cfg.length){
+        flash(`Portfolio ${PANEL[O]} is using ${4 - free.length} of the 4 legs, so this preset doesn't fit in ${PANEL[T]}. Turn a leg off first.`);
+        return;
+      }
+      const defs = defaultLegs();
+      free.forEach(i => { app.legs[i] = Object.assign(defs[i], {on:false}); });
+      cfg.forEach((c,k) => Object.assign(app.legs[free[k]], {on:true, qty:1, panel:T}, c));
+    }
+    renderAll();
+  }
+  document.querySelectorAll('.preset-btn').forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.p)));
+
+  $('resetBtn').addEventListener('click', () => {
+    app.legs = defaultLegs();
+    Object.assign(app, MARKET_DEFAULTS);
+    app.cross = null; app.target = 0;
+    $('presetMsg').textContent = '';
+    renderAll();
+  });
+
+  /* ================= boot ================= */
+  let lastW = 0, raf = 0;
+  new ResizeObserver(() => {
+    const w = chartsEl.clientWidth;
+    if(w === lastW) return;
+    lastW = w;
+    cancelAnimationFrame(raf); raf = requestAnimationFrame(draw);
+  }).observe(chartsEl);
+  if(document.fonts){
+    document.fonts.ready.then(draw);
+    document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', draw);
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
